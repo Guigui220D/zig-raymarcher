@@ -60,3 +60,5 @@ pub const Image = struct {
     data: []color.Color32,
     allocator: *std.mem.Allocator
 };
+
+//Guillaume Derex 2020

@@ -14,3 +14,5 @@ pub fn plane(pos: Vec3) f64 {
 pub fn testWall(pos: Vec3) f64 {
     return math.fabs(pos.z - 10);
 }
+
+//Guillaume Derex 2020

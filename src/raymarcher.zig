@@ -9,7 +9,8 @@ const Image = @import("image.zig").Image;
 
 pub const settings = struct {
     var hit_distance: f64 = 0.01;
-    var max_steps: usize = 1000;
+    var max_steps: usize = 96;
+    var max_reflections: usize = 10;
 };
 
 pub fn distanceToScene(scene: Scene, pos: Vec3) f64 {
@@ -39,11 +40,25 @@ pub fn closestObject(scene: Scene, pos: Vec3) ?*const Renderable {
     return obj;
 }
 
-pub fn march(position: *Vec3, direction: Vec3, distance: f64) void {
+fn normal(object: Renderable, pos: Vec3) Vec3 {
+    var dist = object.object.distance(pos);
+
+    return Vec3.normalize(Vec3 {
+        .x = object.object.distance(pos.sum(Vec3{.x = settings.hit_distance, .y = 0, .z = 0})) - dist,
+        .y = object.object.distance(pos.sum(Vec3{.x = 0, .y = settings.hit_distance, .z = 0})) - dist,
+        .z = object.object.distance(pos.sum(Vec3{.x = 0, .y = 0, .z = settings.hit_distance})) - dist
+    });
+}
+
+fn reflect(incident: Vec3, normale: Vec3) Vec3 {
+    return incident.difference(normale.factor(Vec3.dotProduct(incident, normale) * 2.0));
+}
+
+fn march(position: *Vec3, direction: Vec3, distance: f64) void {
     position.* = Vec3.sum(position.*, direction.factor(distance));
 }
 
-pub fn raymarch(scene: Scene, start: Vec3, direction: Vec3) color.Color {
+pub fn raymarch(scene: Scene, start: Vec3, direction: Vec3, recursion: usize) color.Color {
     var i: usize = 0;
 
     var ray = start;
@@ -52,7 +67,18 @@ pub fn raymarch(scene: Scene, start: Vec3, direction: Vec3) color.Color {
         var distance = distanceToScene(scene, ray);
 
         if (distance <= settings.hit_distance) {
-            break closestObject(scene, ray).?.material.diffuse;
+            const obj = closestObject(scene, ray).?;
+            const mat = obj.material;
+
+            if (mat.reflectivity == 0.0 or recursion == 0)
+                break mat.diffuse;
+
+            const reflection = reflect(direction, normal(obj.*, ray));
+
+            march(&ray, reflection, settings.hit_distance * 1.1);
+            var refl_color = raymarch(scene, ray, reflection, recursion - 1);
+
+            break color.Color.mix(refl_color, mat.diffuse, mat.reflectivity);
         }
 
         march(&ray, direction, distance);
@@ -86,9 +112,11 @@ pub fn render(scene: Scene, canvas: Image) !void {
                 .z = 1.0,
             };
 
-            var col = raymarch(scene, Vec3.nul, direction);
+            var col = raymarch(scene, Vec3.nul, direction.normalize(), settings.max_reflections);
 
             canvas.data[x + y * canvas.width] = col.to32BitsColor();
         }
     }
 }
+
+//Guillaume Derex 2020

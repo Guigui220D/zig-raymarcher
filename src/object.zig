@@ -79,3 +79,5 @@ pub const Object = union(ObjectTypes) {
         translate: Vec3
     }
 };
+
+//Guillaume Derex 2020

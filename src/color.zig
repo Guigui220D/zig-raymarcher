@@ -10,6 +10,16 @@ pub const Color = packed struct {
         };
     }
 
+    pub fn mix(a: Color, b: Color, ratio: f32) Color {
+        const r2: f32 = 1.0 - ratio;
+
+        return Color{
+            .r = a.r * ratio + b.r * r2,
+            .g = a.g * ratio + b.g * r2,
+            .b = a.b * ratio + b.b * r2
+        };
+    }
+
     r: f32,
     g: f32,
     b: f32
@@ -18,3 +28,5 @@ pub const Color = packed struct {
 pub const Color32 = packed struct {
     b: u8, g: u8, r: u8, a: u8
 };
+
+//Guillaume Derex 2020

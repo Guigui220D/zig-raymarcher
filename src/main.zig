@@ -14,16 +14,16 @@ pub fn main() !void {
 
     std.debug.print("Preparing the canvas...\n", .{});
 
-    const canvas = try Image.init(allocator, 100, 100);
+    const canvas = try Image.init(allocator, 200, 200);
     defer canvas.deinit();
 
     std.debug.print("Preparing the scene...\n", .{});
 
-    const red = Material{ .diffuse = color.Color{ .r = 1.0, .g = 0, .b = 0 } };
-    const green = Material{ .diffuse = color.Color{ .r = 0, .g = 1.0, .b = 0 } };
-    const blue = Material{ .diffuse = color.Color{ .r = 0, .g = 0, .b = 1.0 } };
+    const red = Material{ .diffuse = color.Color{ .r = 1.0, .g = 0, .b = 0 }, .reflectivity = 0.5 };
+    const green = Material{ .diffuse = color.Color{ .r = 0, .g = 1.0, .b = 0 }, .reflectivity = 0.5 };
+    const blue = Material{ .diffuse = color.Color{ .r = 0, .g = 0, .b = 1.0 }, .reflectivity = 0.9 };
 
-    const scene = try allocator.alloc(obj.Renderable, 2);
+    const scene = try allocator.alloc(obj.Renderable, 3);
     defer allocator.free(scene);
 
     scene[0] = obj.Renderable.init(red, 
@@ -48,6 +48,17 @@ pub fn main() !void {
     );
     defer scene[1].deinit(allocator);
 
+    scene[2] = obj.Renderable.init(blue, 
+        try obj.Object.initTransform(
+            allocator,
+            try obj.Object.initPrimitive(allocator, primitive.sphere),
+            Vec3.nul,
+            Vec3.one,
+            Vec3{ .x = 2, .y = 1, .z = 5 }
+        )
+    );
+    defer scene[2].deinit(allocator);
+
     std.debug.print("Rendering...\n", .{});
     var timer = try std.time.Timer.start();
     try raymarcher.render(scene, canvas);
@@ -56,3 +67,5 @@ pub fn main() !void {
     try canvas.saveAsTGA(path);
     std.debug.print("File saved to {}.\n", .{path});
 }
+
+//Guillaume Derex 2020

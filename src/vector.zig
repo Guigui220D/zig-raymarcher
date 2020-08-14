@@ -50,13 +50,17 @@ pub const Vec3 = packed struct {
         return diff.length();
     }
 
-    pub fn normalize(self: Vec3) f64 {
+    pub fn normalize(self: Vec3) Vec3 {
         const len = self.length();
         return Vec3{
             .x = self.x / len,
             .y = self.y / len,
             .z = self.z / len,
         };
+    }
+
+    pub fn dotProduct(self: Vec3, other: Vec3) f64 {
+        return self.x * other.x + self.y * other.y + self.z * other.z;
     }
 
     pub const nul = Vec3{ .x = 0, .y = 0, .z = 0 };
@@ -66,3 +70,5 @@ pub const Vec3 = packed struct {
     y: f64,
     z: f64
 };
+
+//Guillaume Derex 2020
