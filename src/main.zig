@@ -14,7 +14,7 @@ pub fn main() !void {
 
     std.debug.print("Preparing the canvas...\n", .{});
 
-    const canvas = try Image.init(allocator, 200, 200);
+    const canvas = try Image.init(allocator, 800, 600);
     defer canvas.deinit();
 
     std.debug.print("Preparing the scene...\n", .{});
