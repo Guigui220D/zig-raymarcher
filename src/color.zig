@@ -6,7 +6,7 @@ pub const Color = packed struct {
             .r = @floatToInt(u8, clamp(self.r, 0.0, 1.0) * 255.0),
             .g = @floatToInt(u8, clamp(self.g, 0.0, 1.0) * 255.0),
             .b = @floatToInt(u8, clamp(self.b, 0.0, 1.0) * 255.0),
-            .a = 0xff
+            .a = 0xff,
         };
     }
 

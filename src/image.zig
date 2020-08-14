@@ -29,9 +29,15 @@ pub const Image = struct {
             0, // ID length
             0, // No color map
             2, // Unmapped RGB
-            0, 0, 0, 0, 0, // No color map
-            0, 0, // X origin
-            0, 0, // Y origin
+            0,
+            0,
+            0,
+            0,
+            0, // No color map
+            0,
+            0, // X origin
+            0,
+            0, // Y origin
         });
         
         try writer.writeIntLittle(u16, @truncate(u16, self.width));

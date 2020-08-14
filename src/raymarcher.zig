@@ -9,7 +9,7 @@ const Image = @import("image.zig").Image;
 
 pub const settings = struct {
     var hit_distance: f64 = 0.01;
-    var max_steps: usize = 10000;
+    var max_steps: usize = 1000;
 };
 
 pub fn distanceToScene(scene: Scene, pos: Vec3) f64 {
@@ -27,12 +27,12 @@ pub fn closestObject(scene: Scene, pos: Vec3) ?*const Renderable {
     var distance: f64 = math.f64_max;
     var obj: ?*const Renderable = null;
 
-    for (scene) |renderable| {
+    for (scene) |*renderable| {
         var dist = renderable.object.distance(pos);
 
         if (dist < distance) {
             distance = dist;
-            obj = &renderable;
+            obj = renderable;
         }
     }
 
@@ -40,7 +40,7 @@ pub fn closestObject(scene: Scene, pos: Vec3) ?*const Renderable {
 }
 
 pub fn march(position: *Vec3, direction: Vec3, distance: f64) void {
-    position.* = Vec3.sum(position.*, direction.multiply(distance));
+    position.* = Vec3.sum(position.*, direction.factor(distance));
 }
 
 pub fn raymarch(scene: Scene, start: Vec3, direction: Vec3) color.Color {
@@ -70,14 +70,12 @@ pub fn render(scene: Scene, canvas: Image) !void {
     if (canvas.width == 0 or canvas.height == 0)
         return renderError.canvasWrongFormat;
 
-    var x: usize = 0;
-    var y: usize = 0;
-
     var fwidth = @intToFloat(f64, canvas.width);
     var fheight = @intToFloat(f64, canvas.height);
 
+    var y: usize = 0;
     while (y < canvas.height) : (y += 1) {
-        x = 0;
+        var x: usize = 0;
         while (x < canvas.width) : (x += 1) {
             var rx = (@intToFloat(f64, x) - (fwidth / 2.0)) / fwidth;
             var ry = (@intToFloat(f64, y) - (fheight / 2.0)) / fwidth;
@@ -88,9 +86,9 @@ pub fn render(scene: Scene, canvas: Image) !void {
                 .z = 1.0,
             };
 
-            var col = raymarch(scene, Vec3.nul, direction).to32BitsColor();
+            var col = raymarch(scene, Vec3.nul, direction);
 
-            canvas.data[x + y * canvas.width] = col;
+            canvas.data[x + y * canvas.width] = col.to32BitsColor();
         }
     }
 }
