@@ -7,6 +7,7 @@ My goal is to be able to have scene files with different materials and geometrie
 Images are saved as TGA files.
 
 ### Todo
+
 - [x] render basic shapes with no shader
 - [x] CSG (constructive geometry)
 - [ ] other math operations like repetitions
@@ -18,3 +19,7 @@ Images are saved as TGA files.
 - [ ] make things less awfully slow
 - [ ] skybox
 - [ ] animations
+
+### Screenshots
+
+![balls](https://github.com/Guigui220D/zig-raymarcher/blob/master/screenshots/balls.png)
