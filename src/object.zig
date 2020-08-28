@@ -22,7 +22,8 @@ pub const Renderable = struct {
 
 const ObjectTypes = enum {
     primitive,
-    transform
+    transform,
+    csg
 };
 
 pub const Object = union(ObjectTypes) {
@@ -37,7 +38,17 @@ pub const Object = union(ObjectTypes) {
                 transformed = transformed.divide(self.transform.scale);
                 //translate
                 transformed = transformed.difference(self.transform.translate);
-                return self.transform.object.distance(transformed);
+                return self.transform.o.distance(transformed);
+            },
+            .csg => {
+                var a = self.csg.a.distance(pos);
+                var b = self.csg.b.distance(pos);
+
+                return switch (self.csg.csg) {
+                    .intersectionSDF => std.math.max(a, b),
+                    .unionSDF => std.math.min(a, b),
+                    .differenceSDF => std.math.max(a, -b)
+                };
             }
         }
     }
@@ -53,10 +64,21 @@ pub const Object = union(ObjectTypes) {
         var ptr = try allocator.create(Object);
         errdefer allocator.destroy(ptr);
         ptr.* = .{ .transform = .{
-            .object = object,
+            .o = object,
             .rotate = rotate,
             .scale = scale,
             .translate = translate
+        }};
+        return ptr;
+    }
+
+    pub fn initCSG(allocator: *std.mem.Allocator, obj_a: *Object, obj_b: *Object, csg: CSGType) !*Object {
+        var ptr = try allocator.create(Object);
+        errdefer allocator.destroy(ptr);
+        ptr.* = .{ .csg = .{
+            .a = obj_a,
+            .b = obj_b,
+            .csg = csg
         }};
         return ptr;
     }
@@ -65,19 +87,36 @@ pub const Object = union(ObjectTypes) {
         switch (self) {
             .primitive => {},
             .transform => { 
-                self.transform.object.deinit(allocator);
-                allocator.destroy(self.transform.object); 
+                self.transform.o.deinit(allocator);
+                allocator.destroy(self.transform.o); 
+            },
+            .csg => {
+                self.csg.a.deinit(allocator);
+                self.csg.b.deinit(allocator);
+                allocator.destroy(self.csg.a);
+                allocator.destroy(self.csg.b);
             }
         }
     }
 
     primitive: PrimitiveFn,
     transform: struct {
-        object: *Object,
+        o: *Object,
         rotate: Vec3,
         scale: Vec3,
         translate: Vec3
+    },
+    csg: struct {
+        a: *Object,
+        b: *Object,
+        csg: CSGType
     }
+};
+
+pub const CSGType = enum(u2) {
+    intersectionSDF,
+    unionSDF,
+    differenceSDF
 };
 
 //Guillaume Derex 2020

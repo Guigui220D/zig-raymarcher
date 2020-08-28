@@ -14,13 +14,13 @@ pub fn main() !void {
 
     std.debug.print("Preparing the canvas...\n", .{});
 
-    const canvas = try Image.init(allocator, 800, 600);
+    const canvas = try Image.init(allocator, 600, 600);
     defer canvas.deinit();
 
     std.debug.print("Preparing the scene...\n", .{});
 
     const red = Material{ .diffuse = color.Color{ .r = 1.0, .g = 0, .b = 0 }, .reflectivity = 0.5 };
-    const green = Material{ .diffuse = color.Color{ .r = 0, .g = 1.0, .b = 0 }, .reflectivity = 0.5 };
+    const green = Material{ .diffuse = color.Color{ .r = 0, .g = 0.7, .b = 0 }, .reflectivity = 0 };
     const blue = Material{ .diffuse = color.Color{ .r = 0, .g = 0, .b = 1.0 }, .reflectivity = 0.9 };
 
     const scene = try allocator.alloc(obj.Renderable, 3);
@@ -29,21 +29,28 @@ pub fn main() !void {
     scene[0] = obj.Renderable.init(red, 
         try obj.Object.initTransform(
             allocator,
-            try obj.Object.initPrimitive(allocator, primitive.sphere),
+            try obj.Object.initCSG(
+                allocator,
+                try obj.Object.initPrimitive(allocator, primitive.plainPlane),
+                try obj.Object.initPrimitive(allocator, primitive.sphere),
+                obj.CSGType.differenceSDF
+            ),
             Vec3.nul,
             Vec3.one,
-            Vec3{ .x = 0, .y = -1, .z = 6 }
-        )
+            Vec3{ .x = 0, .y = -1, .z = 4 }
+        ),
+        
+        
     );
     defer scene[0].deinit(allocator);
 
     scene[1] = obj.Renderable.init(green, 
         try obj.Object.initTransform(
             allocator,
-            try obj.Object.initPrimitive(allocator, primitive.plane),
+            try obj.Object.initPrimitive(allocator, primitive.sphere),
             Vec3.nul,
             Vec3.one,
-            Vec3{ .x = 0, .y = -1, .z = 0 }
+            Vec3{ .x = 0, .y = -2, .z = 4 }
         )
     );
     defer scene[1].deinit(allocator);

@@ -11,6 +11,10 @@ pub fn plane(pos: Vec3) f64 {
     return math.fabs(pos.y);
 }
 
+pub fn plainPlane(pos: Vec3) f64 {
+    return if (pos.y < 0) 0 else pos.y;
+}
+
 pub fn testWall(pos: Vec3) f64 {
     return math.fabs(pos.z - 10);
 }

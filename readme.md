@@ -8,7 +8,7 @@ Images are saved as TGA files.
 
 ### Todo
 - [x] render basic shapes with no shader
-- [ ] CSG (constructive geometry)
+- [x] CSG (constructive geometry)
 - [ ] other math operations like repetitions
 - [x] reflections
 - [ ] refractions
@@ -17,3 +17,4 @@ Images are saved as TGA files.
 - [ ] multithreading
 - [ ] make things less awfully slow
 - [ ] skybox
+- [ ] animations
