@@ -8,9 +8,9 @@ const color = @import("color.zig");
 const Image = @import("image.zig").Image;
 
 pub const settings = struct {
-    var hit_distance: f64 = 0.01;
+    var hit_distance: f64 = 0.02;
     var max_steps: usize = 96;
-    var max_reflections: usize = 10;
+    var max_reflections: usize = 20;
 };
 
 pub fn distanceToScene(scene: Scene, pos: Vec3) f64 {
@@ -40,13 +40,13 @@ pub fn closestObject(scene: Scene, pos: Vec3) ?*const Renderable {
     return obj;
 }
 
-fn normal(object: Renderable, pos: Vec3) Vec3 {
-    var dist = object.object.distance(pos);
+fn normal(rend: Renderable, pos: Vec3) Vec3 {
+    var dist = rend.object.distance(pos);
 
     return Vec3.normalize(Vec3 {
-        .x = object.object.distance(pos.sum(Vec3{.x = settings.hit_distance, .y = 0, .z = 0})) - dist,
-        .y = object.object.distance(pos.sum(Vec3{.x = 0, .y = settings.hit_distance, .z = 0})) - dist,
-        .z = object.object.distance(pos.sum(Vec3{.x = 0, .y = 0, .z = settings.hit_distance})) - dist
+        .x = rend.object.distance(pos.sum(Vec3{.x = settings.hit_distance / 100, .y = 0, .z = 0})) - dist,
+        .y = rend.object.distance(pos.sum(Vec3{.x = 0, .y = settings.hit_distance / 100, .z = 0})) - dist,
+        .z = rend.object.distance(pos.sum(Vec3{.x = 0, .y = 0, .z = settings.hit_distance / 100})) - dist
     });
 }
 
@@ -70,18 +70,29 @@ pub fn raymarch(scene: Scene, start: Vec3, direction: Vec3, recursion: usize) co
             const obj = closestObject(scene, ray).?;
             const mat = obj.material;
 
+            const norm_vec = normal(obj.*, ray);
+
             if (mat.reflectivity == 0.0 or recursion == 0)
                 break mat.diffuse;
 
-            const reflection = reflect(direction, normal(obj.*, ray));
+            const reflection = reflect(direction.normalize(), norm_vec);
 
             march(&ray, reflection, settings.hit_distance * 1.1);
             var refl_color = raymarch(scene, ray, reflection, recursion - 1);
 
-            break color.Color.mix(refl_color, mat.diffuse, mat.reflectivity);
+            const diffuse = if (mat.diffuse2) |pattern| blk: {
+                const sum = math.floor(ray.x * 3) + math.floor(ray.y * 5) + math.floor(ray.z * 3);
+                if (@mod(sum, 2) < 0.1) {
+                    break :blk mat.diffuse;
+                }
+                    break :blk pattern;
+            } else
+                mat.diffuse;
+
+            break color.Color.mix(refl_color, diffuse, mat.reflectivity * @floatCast(f32, Vec3.dotProduct(norm_vec.normalize(), reflection)));
         }
 
-        march(&ray, direction, distance);
+        march(&ray, direction, distance - (settings.hit_distance / 2));
     } else
         color.Color{
         .r = 0,
