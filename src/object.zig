@@ -23,32 +23,45 @@ pub const Renderable = struct {
 const ObjectTypes = enum {
     primitive,
     transform,
-    csg
+    csg,
+    repeat
 };
 
 pub const Object = union(ObjectTypes) {
     pub fn distance(self: Object, pos: Vec3) f64 {
         switch (self) {
             .primitive => return self.primitive(pos),
-            .transform => {
+            .transform => |transform| {
                 var transformed = pos;
                 //rotate
                 //TODO
                 //scale
-                transformed = transformed.divide(self.transform.scale);
+                transformed = transformed.divide(transform.scale);
                 //translate
-                transformed = transformed.difference(self.transform.translate);
-                return self.transform.o.distance(transformed);
+                transformed = transformed.difference(transform.translate);
+                return transform.o.distance(transformed);
             },
-            .csg => {
-                var a = self.csg.a.distance(pos);
-                var b = self.csg.b.distance(pos);
+            .csg => |csg| {
+                var a = csg.a.distance(pos);
+                var b = csg.b.distance(pos);
 
-                return switch (self.csg.csg) {
+                return switch (csg.mode) {
                     .intersectionSDF => std.math.max(a, b),
                     .unionSDF => std.math.min(a, b),
                     .differenceSDF => std.math.max(a, -b)
                 };
+            },
+            .repeat => |repeat| {
+                var transformed = pos;
+
+                if (repeat.axis & 0b001 != 0)  //x
+                    transformed.x = std.math.modf(transformed.x / repeat.modulo).fpart * repeat.modulo;
+                if (repeat.axis & 0b010 != 0)  //y
+                    transformed.y = std.math.modf(transformed.y / repeat.modulo).fpart * repeat.modulo;
+                if (repeat.axis & 0b100 != 0)  //z
+                    transformed.z = std.math.modf(transformed.z / repeat.modulo).fpart * repeat.modulo;
+
+                return self.repeat.o.distance(transformed);
             }
         }
     }
@@ -78,7 +91,18 @@ pub const Object = union(ObjectTypes) {
         ptr.* = .{ .csg = .{
             .a = obj_a,
             .b = obj_b,
-            .csg = csg
+            .mode = csg
+        }};
+        return ptr;
+    }
+
+    pub fn initRepeat(allocator: *std.mem.Allocator, axis: u3, modulo: f64, object: *Object) !*Object {
+        var ptr = try allocator.create(Object);
+        errdefer allocator.destroy(ptr);
+        ptr.* = .{ .repeat = .{
+            .o = object,
+            .axis = axis,
+            .modulo = modulo
         }};
         return ptr;
     }
@@ -86,15 +110,19 @@ pub const Object = union(ObjectTypes) {
     pub fn deinit(self: Object, allocator: *std.mem.Allocator) void {
         switch (self) {
             .primitive => {},
-            .transform => { 
-                self.transform.o.deinit(allocator);
-                allocator.destroy(self.transform.o); 
+            .transform => |transform| { 
+                transform.o.deinit(allocator);
+                allocator.destroy(transform.o); 
             },
-            .csg => {
-                self.csg.a.deinit(allocator);
-                self.csg.b.deinit(allocator);
-                allocator.destroy(self.csg.a);
-                allocator.destroy(self.csg.b);
+            .csg => |csg| {
+                csg.a.deinit(allocator);
+                csg.b.deinit(allocator);
+                allocator.destroy(csg.a);
+                allocator.destroy(csg.b);
+            },
+            .repeat => |repeat| {
+                repeat.o.deinit(allocator);
+                allocator.destroy(repeat.o); 
             }
         }
     }
@@ -109,7 +137,12 @@ pub const Object = union(ObjectTypes) {
     csg: struct {
         a: *Object,
         b: *Object,
-        csg: CSGType
+        mode: CSGType
+    },
+    repeat: struct {
+        o: *Object,
+        axis: u3,   //flags for each axis
+        modulo: f64
     }
 };
 

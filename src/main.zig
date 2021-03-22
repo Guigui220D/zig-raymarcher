@@ -40,8 +40,6 @@ pub fn main() !void {
             Vec3.one,
             Vec3{ .x = 0, .y = -1, .z = 4 }
         ),
-        
-        
     );
     defer scene[0].deinit(allocator);
 
@@ -59,7 +57,12 @@ pub fn main() !void {
     scene[2] = obj.Renderable.init(blue, 
         try obj.Object.initTransform(
             allocator,
-            try obj.Object.initPrimitive(allocator, primitive.sphere),
+            //try obj.Object.initRepeat(
+            //    allocator,
+            //    0b101,
+            //    3,
+                try obj.Object.initPrimitive(allocator, primitive.sphere),
+            //),
             Vec3.nul,
             Vec3.one,
             Vec3{ .x = 2, .y = 1, .z = 5 }
@@ -78,9 +81,11 @@ pub fn main() !void {
     );
     defer scene[3].deinit(allocator);
 
+    const cores =  2 * try std.Thread.cpuCount();
+
     std.debug.print("Rendering...\n", .{});
     var timer = try std.time.Timer.start();
-    try raymarcher.render(scene[0..], canvas);
+    try raymarcher.render(allocator, scene[0..], canvas, cores);
     std.debug.print("Render took {}ms.\n", .{timer.lap() / 1000000});
 
     try canvas.saveAsTGA(path);

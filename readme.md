@@ -15,7 +15,7 @@ Images are saved as TGA files.
 - [ ] refractions
 - [ ] better shaders
 - [ ] loading scenes from json
-- [ ] multithreading
+- [x] multithreading
 - [ ] make things less awfully slow
 - [ ] skybox
 - [ ] animations
