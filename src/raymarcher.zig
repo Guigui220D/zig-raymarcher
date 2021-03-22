@@ -10,7 +10,7 @@ const Image = @import("image.zig").Image;
 
 pub const settings = struct {
     var hit_distance: f64 = 0.02;
-    var max_steps: usize = 96;
+    var max_steps: usize = 128;
     var max_reflections: usize = 20;
 };
 
@@ -50,9 +50,9 @@ fn normal(rend: Renderable, pos: Vec3) Vec3 {
     var dist = rend.object.distance(pos);
 
     return Vec3.normalize(Vec3 {
-        .x = rend.object.distance(pos.sum(Vec3{.x = settings.hit_distance / 10, .y = 0, .z = 0})) - dist,
-        .y = rend.object.distance(pos.sum(Vec3{.x = 0, .y = settings.hit_distance / 10, .z = 0})) - dist,
-        .z = rend.object.distance(pos.sum(Vec3{.x = 0, .y = 0, .z = settings.hit_distance / 10})) - dist
+        .x = rend.object.distance(pos.sum(Vec3{.x = settings.hit_distance / 2, .y = 0, .z = 0})) - dist,
+        .y = rend.object.distance(pos.sum(Vec3{.x = 0, .y = settings.hit_distance / 2, .z = 0})) - dist,
+        .z = rend.object.distance(pos.sum(Vec3{.x = 0, .y = 0, .z = settings.hit_distance / 2})) - dist
     });
 }
 
@@ -97,8 +97,7 @@ pub fn raymarch(scene: Scene, start: Vec3, direction: Vec3, recursion: usize) co
 
             break color.Color.mix(refl_color, diffuse, mat.reflectivity * @floatCast(f32, Vec3.dotProduct(norm_vec.normalize(), reflection)));
         }
-
-        march(&ray, direction, distance - (settings.hit_distance / 2));
+        march(&ray, direction, distance - (settings.hit_distance * 0.9));
     } else
         color.Color{
         .r = 0,

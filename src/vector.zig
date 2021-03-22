@@ -1,4 +1,8 @@
 pub const Vec3 = packed struct {
+    pub fn eql(self: Vec3, other: Vec3) bool {
+        return (self.x == other.x) and (self.y == other.y) and (self.z == other.z);
+    }
+
     pub fn sum(self: Vec3, other: Vec3) Vec3 {
         return Vec3{
             .x = self.x + other.x,

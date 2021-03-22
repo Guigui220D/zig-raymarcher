@@ -34,9 +34,40 @@ pub const Object = union(ObjectTypes) {
             .transform => |transform| {
                 var transformed = pos;
                 //rotate
-                //TODO
+                if (!transform.rotate.eql(Vec3.nul)) {
+                    const cos = std.math.cos;
+                    const sin = std.math.sin;
+                    {   //x
+                        const theta = transform.rotate.x;
+                        const ct = cos(theta);
+                        const st = sin(theta);
+                        const new_y = ct * transformed.y - st * transformed.z;
+                        const new_z = st * transformed.y + ct * transformed.z;
+                        transformed.y = new_y;
+                        transformed.z = new_z;
+                    }
+                    {   //y
+                        const theta = transform.rotate.y;
+                        const ct = cos(theta);
+                        const st = sin(theta);
+                        const new_x = ct * transformed.x + st * transformed.z;
+                        const new_z = ct * transformed.z - st * transformed.x;
+                        transformed.x = new_x;
+                        transformed.z = new_z;
+                    }
+                    {   //z
+                        const theta = transform.rotate.z;
+                        const ct = cos(theta);
+                        const st = sin(theta);
+                        const new_x = ct * transformed.x - st * transformed.y;
+                        const new_y = st * transformed.x + ct * transformed.y;
+                        transformed.x = new_x;
+                        transformed.y = new_y;
+                    }
+                }
                 //scale
-                transformed = transformed.divide(transform.scale);
+                if (!transform.scale.eql(Vec3.one))
+                    transformed = transformed.divide(transform.scale);
                 //translate
                 transformed = transformed.difference(transform.translate);
                 return transform.o.distance(transformed);
