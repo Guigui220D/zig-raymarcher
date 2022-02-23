@@ -1,4 +1,4 @@
-const Renderable = @import("object.zig").Renderable;
+const Renderable = @import("Renderable.zig");
 
 pub const Scene = []Renderable;
 

@@ -1,0 +1,3 @@
+[submodule "zlm"]
+	path = zlm
+	url = git@github.com:ziglibs/zlm.git

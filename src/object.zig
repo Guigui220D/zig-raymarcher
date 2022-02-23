@@ -1,24 +1,7 @@
-const Vec3 = @import("vector.zig").Vec3;
+const zlm = @import("zlm").SpecializeOn(f64);
 const std = @import("std");
 const PrimitiveFn = @import("primitives.zig").PrimitiveFn;
 const Material = @import("material.zig").Material;
-
-pub const Renderable = struct {
-    pub fn init(material: Material, object: *Object) Renderable {
-        return Renderable{
-            .material = material,
-            .object = object,
-        };
-    }
-
-    pub fn deinit(self: Renderable, allocator: std.mem.Allocator) void {
-        self.object.deinit(allocator);
-        allocator.destroy(self.object);
-    }
-
-    material: Material,
-    object: *Object
-};
 
 const ObjectTypes = enum {
     primitive,
@@ -28,13 +11,13 @@ const ObjectTypes = enum {
 };
 
 pub const Object = union(ObjectTypes) {
-    pub fn distance(self: Object, pos: Vec3) f64 {
+    pub fn distance(self: Object, pos: zlm.Vec3) f64 {
         switch (self) {
             .primitive => return self.primitive(pos),
             .transform => |transform| {
                 var transformed = pos;
                 //rotate
-                if (!transform.rotate.eql(Vec3.nul)) {
+                if (!transform.rotate.eql(zlm.Vec3.zero)) {
                     const cos = std.math.cos;
                     const sin = std.math.sin;
                     {   //x
@@ -66,10 +49,10 @@ pub const Object = union(ObjectTypes) {
                     }
                 }
                 //scale
-                if (!transform.scale.eql(Vec3.one))
-                    transformed = transformed.divide(transform.scale);
+                if (!transform.scale.eql(zlm.Vec3.one))
+                    transformed = transformed.div(transform.scale);
                 //translate
-                transformed = transformed.difference(transform.translate);
+                transformed = transformed.sub(transform.translate);
                 return transform.o.distance(transformed);
             },
             .csg => |csg| {
@@ -104,7 +87,7 @@ pub const Object = union(ObjectTypes) {
         return ptr;
     }
 
-    pub fn initTransform(allocator: std.mem.Allocator, object: *Object, rotate: Vec3, scale: Vec3, translate: Vec3) !*Object {
+    pub fn initTransform(allocator: std.mem.Allocator, object: *Object, rotate: zlm.Vec3, scale: zlm.Vec3, translate: zlm.Vec3) !*Object {
         var ptr = try allocator.create(Object);
         errdefer allocator.destroy(ptr);
         ptr.* = .{ .transform = .{
@@ -161,9 +144,9 @@ pub const Object = union(ObjectTypes) {
     primitive: PrimitiveFn,
     transform: struct {
         o: *Object,
-        rotate: Vec3,
-        scale: Vec3,
-        translate: Vec3
+        rotate: zlm.Vec3,
+        scale: zlm.Vec3,
+        translate: zlm.Vec3
     },
     csg: struct {
         a: *Object,

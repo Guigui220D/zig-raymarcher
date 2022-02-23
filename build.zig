@@ -6,6 +6,7 @@ pub fn build(b: *Builder) !void {
     const mode = b.standardReleaseOptions();
 
     const exe = b.addExecutable("init-exe", "src/main.zig");
+    exe.addPackagePath("zlm", "zlm/zlm.zig");
     exe.setTarget(target);
     exe.setBuildMode(mode);
     exe.install();

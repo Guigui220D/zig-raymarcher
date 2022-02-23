@@ -1,6 +1,6 @@
 const Scene = @import("scene.zig").Scene;
-const Vec3 = @import("vector.zig").Vec3;
-const Renderable = @import("object.zig").Renderable;
+const zlm = @import("zlm").SpecializeOn(f64);
+const Renderable = @import("Renderable.zig");
 
 const std = @import("std");
 const math = std.math;
@@ -20,18 +20,18 @@ var fwidth: f64 = undefined;
 var fheight: f64 = undefined;
 var next_slice: usize = 0;
 
-pub fn distanceToScene(scene: Scene, pos: Vec3) f64 {
+pub fn distanceToScene(scene: Scene, pos: zlm.Vec3) f64 {
     var distance: f64 = math.f64_max;
 
     for (scene) |renderable| {
-        var dist = renderable.object.distance(pos);
+        const dist = renderable.object.distance(pos);
         distance = math.min(distance, dist);
     }
 
     return distance;
 }
 
-pub fn closestObject(scene: Scene, pos: Vec3) ?*const Renderable {
+pub fn closestObject(scene: Scene, pos: zlm.Vec3) ?*const Renderable {
     var distance: f64 = math.f64_max;
     var obj: ?*const Renderable = null;
 
@@ -47,25 +47,25 @@ pub fn closestObject(scene: Scene, pos: Vec3) ?*const Renderable {
     return obj;
 }
 
-fn normal(rend: Renderable, pos: Vec3) Vec3 {
+fn normal(rend: Renderable, pos: zlm.Vec3) zlm.Vec3 {
     var dist = rend.object.distance(pos);
 
-    return Vec3.normalize(Vec3 {
-        .x = rend.object.distance(pos.sum(Vec3{.x = settings.hit_distance / 2, .y = 0, .z = 0})) - dist,
-        .y = rend.object.distance(pos.sum(Vec3{.x = 0, .y = settings.hit_distance / 2, .z = 0})) - dist,
-        .z = rend.object.distance(pos.sum(Vec3{.x = 0, .y = 0, .z = settings.hit_distance / 2})) - dist
-    });
+    return zlm.Vec3.normalize(zlm.vec3(
+        rend.object.distance(pos.add(zlm.vec3(settings.hit_distance / 2, 0, 0))) - dist,
+        rend.object.distance(pos.add(zlm.vec3(0, settings.hit_distance / 2, 0))) - dist,
+        rend.object.distance(pos.add(zlm.vec3(0, 0, settings.hit_distance / 2))) - dist
+    ));
 }
 
-fn reflect(incident: Vec3, normale: Vec3) Vec3 {
-    return incident.difference(normale.factor(Vec3.dotProduct(incident, normale) * 2.0));
+fn reflect(incident: zlm.Vec3, normale: zlm.Vec3) zlm.Vec3 {
+    return incident.sub(normale.scale(incident.dot(normale) * 2.0));
 }
 
-fn march(position: *Vec3, direction: Vec3, distance: f64) void {
-    position.* = Vec3.sum(position.*, direction.factor(distance));
+fn march(position: *zlm.Vec3, direction: zlm.Vec3, distance: f64) void {
+    position.* = position.add(direction.scale(distance));
 }
 
-pub fn raymarch(scene: Scene, start: Vec3, direction: Vec3, recursion: usize) color.Color {
+pub fn raymarch(scene: Scene, start: zlm.Vec3, direction: zlm.Vec3, recursion: usize) color.Color {
     var i: usize = 0;
 
     var ray = start;
@@ -96,7 +96,7 @@ pub fn raymarch(scene: Scene, start: Vec3, direction: Vec3, recursion: usize) co
             } else
                 mat.diffuse;
 
-            break color.Color.mix(refl_color, diffuse, mat.reflectivity * @floatCast(f32, Vec3.dotProduct(norm_vec.normalize(), reflection)));
+            break color.Color.mix(refl_color, diffuse, mat.reflectivity * @floatCast(f32, norm_vec.normalize().dot(reflection)));
         }
         march(&ray, direction, distance - (settings.hit_distance * 0.9));
     } else
@@ -147,13 +147,9 @@ fn renderSlice() !void {
         while (x < width) : (x += 1) {
             const rx = (@intToFloat(f64, x) - (fwidth / 2.0)) / fwidth;
 
-            const direction = Vec3{
-                .x = rx,
-                .y = ry,
-                .z = 1.0,
-            };
+            const direction = zlm.vec3(rx, ry, 1);
 
-            const col = raymarch(current_scene, Vec3.nul, direction.normalize(), settings.max_reflections);
+            const col = raymarch(current_scene, zlm.Vec3.zero, direction.normalize(), settings.max_reflections);
             current_canvas.data[begin + x] = col.to32BitsColor();
         }
     }
