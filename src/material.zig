@@ -1,7 +1,7 @@
-const color = @import("color.zig");
+const Color = @import("color.zig").Color;
 
-diffuse: color.Color,
+diffuse: Color,
 reflectivity: f32,
-diffuse2: ?color.Color = null
+diffuse2: ?Color = null
 
 //Guillaume Derex 2020

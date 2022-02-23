@@ -1,7 +1,7 @@
 const zlm = @import("zlm").SpecializeOn(f64);
 const std = @import("std");
 const PrimitiveFn = @import("primitives.zig").PrimitiveFn;
-const Material = @import("material.zig").Material;
+const Material = @import("Material.zig");
 
 const ObjectTypes = enum {
     primitive,
@@ -11,6 +11,20 @@ const ObjectTypes = enum {
 };
 
 pub const Object = union(ObjectTypes) {
+    var arena: std.heap.ArenaAllocator = undefined;
+    var alloc: std.mem.Allocator = undefined;
+
+    pub fn initArena(allocator: std.mem.Allocator) void {
+        arena = std.heap.ArenaAllocator.init(allocator);
+        alloc = arena.allocator();
+    }
+
+    pub fn freeArena() void {
+        arena.deinit();
+        arena = undefined;
+        alloc = undefined;
+    }
+
     pub fn distance(self: Object, pos: zlm.Vec3) f64 {
         switch (self) {
             .primitive => return self.primitive(pos),
@@ -80,16 +94,16 @@ pub const Object = union(ObjectTypes) {
         }
     }
 
-    pub fn initPrimitive(allocator: std.mem.Allocator, function: PrimitiveFn) !*Object {
-        var ptr = try allocator.create(Object);
-        errdefer allocator.destroy(ptr);
+    pub fn initPrimitive(function: PrimitiveFn) !*Object {
+        var ptr = try alloc.create(Object);
+        errdefer alloc.destroy(ptr);
         ptr.* = .{ .primitive = function };
         return ptr;
     }
 
-    pub fn initTransform(allocator: std.mem.Allocator, object: *Object, rotate: zlm.Vec3, scale: zlm.Vec3, translate: zlm.Vec3) !*Object {
-        var ptr = try allocator.create(Object);
-        errdefer allocator.destroy(ptr);
+    pub fn initTransform(object: *Object, rotate: zlm.Vec3, scale: zlm.Vec3, translate: zlm.Vec3) !*Object {
+        var ptr = try alloc.create(Object);
+        errdefer alloc.destroy(ptr);
         ptr.* = .{ .transform = .{
             .o = object,
             .rotate = rotate,
@@ -99,9 +113,9 @@ pub const Object = union(ObjectTypes) {
         return ptr;
     }
 
-    pub fn initCSG(allocator: std.mem.Allocator, obj_a: *Object, obj_b: *Object, csg: CSGType) !*Object {
-        var ptr = try allocator.create(Object);
-        errdefer allocator.destroy(ptr);
+    pub fn initCSG(obj_a: *Object, obj_b: *Object, csg: CSGType) !*Object {
+        var ptr = try alloc.create(Object);
+        errdefer alloc.destroy(ptr);
         ptr.* = .{ .csg = .{
             .a = obj_a,
             .b = obj_b,
@@ -110,9 +124,9 @@ pub const Object = union(ObjectTypes) {
         return ptr;
     }
 
-    pub fn initRepeat(allocator: std.mem.Allocator, axis: u3, modulo: f64, object: *Object) !*Object {
-        var ptr = try allocator.create(Object);
-        errdefer allocator.destroy(ptr);
+    pub fn initRepeat(axis: u3, modulo: f64, object: *Object) !*Object {
+        var ptr = try alloc.create(Object);
+        errdefer alloc.destroy(ptr);
         ptr.* = .{ .repeat = .{
             .o = object,
             .axis = axis,
@@ -121,22 +135,22 @@ pub const Object = union(ObjectTypes) {
         return ptr;
     }
 
-    pub fn deinit(self: Object, allocator: std.mem.Allocator) void {
+    pub fn deinit(self: Object) void {
         switch (self) {
             .primitive => {},
             .transform => |transform| { 
-                transform.o.deinit(allocator);
-                allocator.destroy(transform.o); 
+                transform.o.deinit(alloc);
+                alloc.destroy(transform.o); 
             },
             .csg => |csg| {
-                csg.a.deinit(allocator);
-                csg.b.deinit(allocator);
-                allocator.destroy(csg.a);
-                allocator.destroy(csg.b);
+                csg.a.deinit(alloc);
+                csg.b.deinit(alloc);
+                alloc.destroy(csg.a);
+                alloc.destroy(csg.b);
             },
             .repeat => |repeat| {
-                repeat.o.deinit(allocator);
-                allocator.destroy(repeat.o); 
+                repeat.o.deinit(alloc);
+                alloc.destroy(repeat.o); 
             }
         }
     }
