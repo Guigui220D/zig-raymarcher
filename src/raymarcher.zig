@@ -1,6 +1,6 @@
-usingnamespace @import("scene.zig");
-usingnamespace @import("vector.zig");
-usingnamespace @import("object.zig");
+const Scene = @import("scene.zig").Scene;
+const Vec3 = @import("vector.zig").Vec3;
+const Renderable = @import("object.zig").Renderable;
 
 const std = @import("std");
 const math = std.math;
@@ -15,6 +15,7 @@ pub const settings = struct {
 };
 
 var current_scene: Scene = undefined;
+var current_canvas: Image = undefined;
 var fwidth: f64 = undefined;
 var fheight: f64 = undefined;
 var next_slice: usize = 0;
@@ -106,42 +107,44 @@ pub fn raymarch(scene: Scene, start: Vec3, direction: Vec3, recursion: usize) co
     };
 }
 
-pub fn render(allocator: *std.mem.Allocator, scene: Scene, canvas: Image, thread_count: usize) !void {
+pub fn render(allocator: std.mem.Allocator, scene: Scene, canvas: Image, thread_count: usize) !void {
     if (canvas.width == 0 or canvas.height == 0)
         return error.canvasWrongFormat;
 
     current_scene = scene;
+    current_canvas = canvas;
 
     fwidth = @intToFloat(f64, canvas.width);
     fheight = @intToFloat(f64, canvas.height);
 
     next_slice = 0;
 
-    var threads = try allocator.alloc(*std.Thread, thread_count);
+    var threads = try allocator.alloc(std.Thread, thread_count);
     defer allocator.free(threads);
 
     for (threads) |*thread| {
-        thread.* = try std.Thread.spawn(renderSlice, canvas);
+        thread.* = try std.Thread.spawn(.{}, renderSlice, .{});
     }
     for (threads) |thread| {
-        thread.wait();
+        thread.join();
     }
 }
 
-fn renderSlice(canvas: Image) !void {
+fn renderSlice() !void {
     while (true) {
         const my_slice = @atomicRmw(usize, &next_slice, .Add, 1, .SeqCst); //Atomically increment and get task
-        if (my_slice >= canvas.height)
+        if (my_slice >= current_canvas.height)
             break;
 
-        std.debug.print("Slice {} out of {}\n", .{ my_slice, canvas.height });
+        std.debug.print("Slice {} out of {}\n", .{ my_slice, current_canvas.height });
 
-        const begin = canvas.width * my_slice;
+        const width = current_canvas.width;
+        const begin = width * my_slice;
 
         const ry = (@intToFloat(f64, my_slice) - (fheight / 2.0)) / fwidth;
 
         var x: usize = 0;
-        while (x < canvas.width) : (x += 1) {
+        while (x < width) : (x += 1) {
             const rx = (@intToFloat(f64, x) - (fwidth / 2.0)) / fwidth;
 
             const direction = Vec3{
@@ -151,7 +154,7 @@ fn renderSlice(canvas: Image) !void {
             };
 
             const col = raymarch(current_scene, Vec3.nul, direction.normalize(), settings.max_reflections);
-            canvas.data[begin + x] = col.to32BitsColor();
+            current_canvas.data[begin + x] = col.to32BitsColor();
         }
     }
 }

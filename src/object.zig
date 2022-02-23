@@ -1,4 +1,4 @@
-usingnamespace @import("vector.zig");
+const Vec3 = @import("vector.zig").Vec3;
 const std = @import("std");
 const PrimitiveFn = @import("primitives.zig").PrimitiveFn;
 const Material = @import("material.zig").Material;
@@ -11,7 +11,7 @@ pub const Renderable = struct {
         };
     }
 
-    pub fn deinit(self: Renderable, allocator: *std.mem.Allocator) void {
+    pub fn deinit(self: Renderable, allocator: std.mem.Allocator) void {
         self.object.deinit(allocator);
         allocator.destroy(self.object);
     }
@@ -97,14 +97,14 @@ pub const Object = union(ObjectTypes) {
         }
     }
 
-    pub fn initPrimitive(allocator: *std.mem.Allocator, function: PrimitiveFn) !*Object {
+    pub fn initPrimitive(allocator: std.mem.Allocator, function: PrimitiveFn) !*Object {
         var ptr = try allocator.create(Object);
         errdefer allocator.destroy(ptr);
         ptr.* = .{ .primitive = function };
         return ptr;
     }
 
-    pub fn initTransform(allocator: *std.mem.Allocator, object: *Object, rotate: Vec3, scale: Vec3, translate: Vec3) !*Object {
+    pub fn initTransform(allocator: std.mem.Allocator, object: *Object, rotate: Vec3, scale: Vec3, translate: Vec3) !*Object {
         var ptr = try allocator.create(Object);
         errdefer allocator.destroy(ptr);
         ptr.* = .{ .transform = .{
@@ -116,7 +116,7 @@ pub const Object = union(ObjectTypes) {
         return ptr;
     }
 
-    pub fn initCSG(allocator: *std.mem.Allocator, obj_a: *Object, obj_b: *Object, csg: CSGType) !*Object {
+    pub fn initCSG(allocator: std.mem.Allocator, obj_a: *Object, obj_b: *Object, csg: CSGType) !*Object {
         var ptr = try allocator.create(Object);
         errdefer allocator.destroy(ptr);
         ptr.* = .{ .csg = .{
@@ -127,7 +127,7 @@ pub const Object = union(ObjectTypes) {
         return ptr;
     }
 
-    pub fn initRepeat(allocator: *std.mem.Allocator, axis: u3, modulo: f64, object: *Object) !*Object {
+    pub fn initRepeat(allocator: std.mem.Allocator, axis: u3, modulo: f64, object: *Object) !*Object {
         var ptr = try allocator.create(Object);
         errdefer allocator.destroy(ptr);
         ptr.* = .{ .repeat = .{
@@ -138,7 +138,7 @@ pub const Object = union(ObjectTypes) {
         return ptr;
     }
 
-    pub fn deinit(self: Object, allocator: *std.mem.Allocator) void {
+    pub fn deinit(self: Object, allocator: std.mem.Allocator) void {
         switch (self) {
             .primitive => {},
             .transform => |transform| { 

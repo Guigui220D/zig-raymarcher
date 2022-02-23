@@ -2,7 +2,7 @@ const std = @import("std");
 const color = @import("color.zig");
 
 pub const Image = struct {
-    pub fn init(allocator: *std.mem.Allocator, width: usize, height: usize) !Image {
+    pub fn init(allocator: std.mem.Allocator, width: usize, height: usize) !Image {
         return Image{
             .width = width,
             .height = height,
@@ -58,7 +58,7 @@ pub const Image = struct {
     width: usize,
     height: usize,
     data: []color.Color32,
-    allocator: *std.mem.Allocator
+    allocator: std.mem.Allocator
 };
 
 //Guillaume Derex 2020

@@ -1,4 +1,4 @@
-usingnamespace @import("vector.zig");
+const Vec3 = @import("vector.zig").Vec3;
 const math = @import("std").math;
 
 pub const PrimitiveFn = fn (Vec3) f64;

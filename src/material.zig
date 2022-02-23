@@ -1,4 +1,4 @@
-usingnamespace @import("vector.zig");
+const Vec3 = @import("vector.zig").Vec3;
 const color = @import("color.zig");
 
 pub const Material = struct {

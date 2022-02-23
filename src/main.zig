@@ -4,12 +4,18 @@ const Image = @import("image.zig").Image;
 const obj = @import("object.zig");
 const Material = @import("material.zig").Material;
 const color = @import("color.zig");
-usingnamespace @import("vector.zig");
+const Vec3 = @import("vector.zig").Vec3;
 const primitive = @import("primitives.zig");
 
 const allocator = std.heap.page_allocator;
 
 pub fn main() !void {
+    // TODO: use arena allocator for scene
+    // TODO: threads
+    // TODO: animation
+    // TODO: use a math lib
+    // TODO: refactor classes and remove useless ones
+    // TODO: scene from json
     const path = "test.tga";
 
     std.debug.print("Preparing the canvas...\n", .{});
@@ -20,7 +26,7 @@ pub fn main() !void {
     std.debug.print("Preparing the scene...\n", .{});
 
     const red = Material{ .diffuse = color.Color{ .r = 1.0, .g = 0, .b = 0 }, .diffuse2 = color.Color{ .r = 0.5, .g = 0, .b = 0 }, .reflectivity = 0.5 };
-    const green = Material{ .diffuse = color.Color{ .r = 0, .g = 0.7, .b = 0 }, .reflectivity = 0 };
+    //const green = Material{ .diffuse = color.Color{ .r = 0, .g = 0.7, .b = 0 }, .reflectivity = 0 };
     const blue = Material{ .diffuse = color.Color{ .r = 0, .g = 0, .b = 1.0 }, .reflectivity = 0.8 };
     const mirror = Material{ .diffuse = color.Color{ .r = 1.0, .g = 1.0, .b = 1.0 }, .reflectivity = 0.8 };
 
@@ -82,7 +88,7 @@ pub fn main() !void {
     );
     defer scene[2].deinit(allocator);
 
-    const cores =  4 * try std.Thread.cpuCount();
+    const cores = 4 * try std.Thread.getCpuCount();
 
     std.debug.print("Rendering...\n", .{});
     var timer = try std.time.Timer.start();
