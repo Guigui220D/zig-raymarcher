@@ -19,11 +19,10 @@ pub fn main() !void {
     Object.initArena(allocator);
     defer Object.freeArena();
 
-    // TODO: use arena allocator for scene
     // TODO: animation
-    // TODO: refactor classes and remove useless ones
     // TODO: scene from json
     // TODO: update footers
+    // TODO: progress bar
     const path = "test.tga";
 
     std.debug.print("Preparing the canvas...\n", .{});

@@ -12,6 +12,7 @@ pub const settings = struct {
     var max_reflections: usize = 20;
 };
 
+var render_node: *std.Progress.Node = undefined;
 var current_scene: []const Renderable = undefined;
 var current_canvas: Image = undefined;
 var fwidth: f64 = undefined;
@@ -120,6 +121,10 @@ pub fn render(allocator: std.mem.Allocator, scene: []const Renderable, canvas: I
     var threads = try allocator.alloc(std.Thread, thread_count);
     defer allocator.free(threads);
 
+    var progress = std.Progress{};
+    render_node = try progress.start("Render", current_canvas.height);
+    defer render_node.end();
+
     for (threads) |*thread| {
         thread.* = try std.Thread.spawn(.{}, renderSlice, .{});
     }
@@ -134,7 +139,7 @@ fn renderSlice() !void {
         if (my_slice >= current_canvas.height)
             break;
 
-        std.debug.print("Slice {} out of {}\n", .{ my_slice, current_canvas.height });
+        //std.debug.print("Slice {} out of {}\n", .{ my_slice, current_canvas.height });
 
         const width = current_canvas.width;
         const begin = width * my_slice;
@@ -150,6 +155,8 @@ fn renderSlice() !void {
             const col = raymarch(current_scene, zlm.Vec3.zero, direction.normalize(), settings.max_reflections);
             current_canvas.data[begin + x] = col.to32BitsColor();
         }
+
+        render_node.completeOne();
     }
 }
 
