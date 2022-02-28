@@ -1,101 +1,93 @@
 const std = @import("std");
+const args_parser = @import("args");
 
-const z = @import("zlm");
-const zlm = z.SpecializeOn(f64);
-
+const scene_loader = @import("scene_loader.zig");
+const default_scene = @import("default_scene.zig");
 const raymarcher = @import("raymarcher.zig");
-const primitive = @import("primitives.zig");
-const Color = @import("color.zig").Color;
 const Object = @import("object.zig").Object;
 const Image = @import("Image.zig");
 const Renderable = @import("Renderable.zig");
-const Material = @import("Material.zig");
 
 pub fn main() !void {
+    // Allocator
     var gpa: std.heap.GeneralPurposeAllocator(.{}) = .{};
     const allocator = gpa.allocator();
     defer _ = gpa.deinit();
 
+    // Arguments parsing
+    const args = args_parser.parseForCurrentProcess(struct {
+        // This declares long options for double hyphen
+        output: []const u8 = "test.tga",
+        threads: ?usize = null,
+        scene: ?[]const u8 = null,
+        preview: bool = false,
+
+        // This declares short-hand options for single hyphen
+        pub const shorthands = .{
+            .o = "output",
+            .t = "threads",
+            .s = "scene",
+            .p = "preview",
+        };
+    }, allocator, .print) catch return;
+    defer args.deinit();
+
+    raymarcher.settings.preview = args.options.preview;
+
+    // Threads count argument
+    var cores = 4 * try std.Thread.getCpuCount();
+    if (args.options.threads) |t| {
+        if (t == 0) {
+            cores = 1;
+        } else if (t > 256) {
+            std.debug.print("Threads count too big, defaulting to {}.\n", .{cores});
+        } else
+            cores = t;
+    }
+    
+    std.debug.print("Preparing the scene...\n", .{});
+
     Object.initArena(allocator);
     defer Object.freeArena();
 
+    var scene: []Renderable = undefined;
+    if (args.options.scene) |scene_file| {
+        _ = scene_file;
+        @panic("not implemented yet");
+    } else {
+        scene = try default_scene.get(allocator);
+        //scene = try scene_loader.loadSceneFromJson(@embedFile("test_scene.json"), allocator);
+    }
+    defer allocator.free(scene);
+
+    // What should be in the scene file: everything needed for a deterministic render
+    //  canvas size, materials, iterations
+    // What should be as args: things regarding performance, output place, and overrides
+    //  threads count, override iterations
+
     // TODO: animation
-    // TODO: scene from json
     // TODO: update footers
-    // TODO: progress bar
+    // TODO: bigger workloads for threads
+    // TODO: skyboxes
+    // TODO: png support
+    // TODO: better prints (not debug)
+    // TODO: matrix transforms
     const path = "test.tga";
 
     std.debug.print("Preparing the canvas...\n", .{});
 
-    const canvas = try Image.init(allocator, 300, 300);
+    const canvas = try Image.init(allocator, 500, 500);
     defer canvas.deinit();
 
-    std.debug.print("Preparing the scene...\n", .{});
-
-    const red = Material{ .diffuse = Color{ .r = 1.0, .g = 0, .b = 0 }, .diffuse2 = Color{ .r = 0.5, .g = 0, .b = 0 }, .reflectivity = 0.5 };
-    //const green = Material{ .diffuse = Color{ .r = 0, .g = 0.7, .b = 0 }, .reflectivity = 0 };
-    const blue = Material{ .diffuse = Color{ .r = 0, .g = 0, .b = 1.0 }, .reflectivity = 0.8 };
-    const mirror = Material{ .diffuse = Color{ .r = 1.0, .g = 1.0, .b = 1.0 }, .reflectivity = 0.8 };
-
-    var scene: [3]Renderable = undefined;
-
-    scene[0] = .{
-        .material = red, 
-        .object = try Object.initTransform(
-            try Object.initPrimitive(primitive.plainPlane),
-            zlm.Vec3.zero,
-            zlm.Vec3.one,
-            zlm.vec3(0, -1, 4)
-        ),
-    };
-
-    scene[1] = .{
-        .material = blue, 
-        .object = try Object.initTransform(
-            try Object.initCSG(
-                try Object.initCSG(
-                    try Object.initTransform(
-                        try Object.initPrimitive(primitive.sphere),
-                        zlm.Vec3.zero,
-                        zlm.Vec3.all(1.2),
-                        zlm.Vec3.zero
-                    ),
-                    try Object.initPrimitive(primitive.cube),
-                    .intersectionSDF
-                ),
-                try Object.initTransform(
-                    try Object.initPrimitive(primitive.infCylinder),
-                    zlm.vec3(z.toRadians(90.0), 0, 0),
-                    zlm.Vec3.all(0.5),
-                    zlm.Vec3.zero
-                ),
-                .differenceSDF
-            ),
-            zlm.vec3(z.toRadians(10.0), 0, 0),
-            zlm.Vec3.one,
-            zlm.vec3(1, 0.5, 7)
-        )
-    };
-
-    scene[2] = .{
-        .material = mirror, 
-        .object = try Object.initTransform(
-            try Object.initPrimitive(primitive.testWall),
-            zlm.vec3(z.toRadians(10.0), z.toRadians(10.0), 0),
-            zlm.Vec3.one,
-            zlm.vec3(0, 0, 3)
-        )
-    };
-
-    const cores = 4 * try std.Thread.getCpuCount();
-
-    std.debug.print("Rendering...\n", .{});
+    std.debug.print("Rendering with {} threads...\n", .{cores});
     var timer = try std.time.Timer.start();
-    try raymarcher.render(allocator, &scene, canvas, cores);
-    std.debug.print("Render took {}ms.\n", .{timer.lap() / 1000000});
+    try raymarcher.render(allocator, scene, canvas, cores);
+    std.debug.print("Render took {}s.\n", .{timer.lap() / std.time.ns_per_s});
 
     try canvas.saveAsTGA(path);
     std.debug.print("File saved to {s}.\n", .{path});
 }
+
+
 
 //Guillaume Derex 2020

@@ -32,32 +32,24 @@ pub const Object = union(ObjectTypes) {
                 var transformed = pos;
                 //rotate
                 if (!transform.rotate.eql(zlm.Vec3.zero)) {
-                    const cos = std.math.cos;
-                    const sin = std.math.sin;
                     {   //x
-                        const theta = transform.rotate.x;
-                        const ct = cos(theta);
-                        const st = sin(theta);
-                        const new_y = ct * transformed.y - st * transformed.z;
-                        const new_z = st * transformed.y + ct * transformed.z;
+                        const sc = transform._xsincos;
+                        const new_y = sc.y * transformed.y - sc.x * transformed.z;
+                        const new_z = sc.x * transformed.y + sc.y * transformed.z;
                         transformed.y = new_y;
                         transformed.z = new_z;
                     }
                     {   //y
-                        const theta = transform.rotate.y;
-                        const ct = cos(theta);
-                        const st = sin(theta);
-                        const new_x = ct * transformed.x + st * transformed.z;
-                        const new_z = ct * transformed.z - st * transformed.x;
+                        const sc = transform._ysincos;
+                        const new_x = sc.y * transformed.x + sc.x * transformed.z;
+                        const new_z = sc.y * transformed.z - sc.x * transformed.x;
                         transformed.x = new_x;
                         transformed.z = new_z;
                     }
                     {   //z
-                        const theta = transform.rotate.z;
-                        const ct = cos(theta);
-                        const st = sin(theta);
-                        const new_x = ct * transformed.x - st * transformed.y;
-                        const new_y = st * transformed.x + ct * transformed.y;
+                        const sc = transform._zsincos;
+                        const new_x = sc.y * transformed.x - sc.x * transformed.y;
+                        const new_y = sc.x * transformed.x + sc.y * transformed.y;
                         transformed.x = new_x;
                         transformed.y = new_y;
                     }
@@ -82,12 +74,12 @@ pub const Object = union(ObjectTypes) {
             .repeat => |repeat| {
                 var transformed = pos;
 
-                if (repeat.axis & 0b001 != 0)  //x
-                    transformed.x = std.math.modf(transformed.x / repeat.modulo).fpart * repeat.modulo;
+                if (repeat.axis & 0b100 != 0)  //x
+                    transformed.x = mmodulo(transformed.x, repeat.modulo);
                 if (repeat.axis & 0b010 != 0)  //y
-                    transformed.y = std.math.modf(transformed.y / repeat.modulo).fpart * repeat.modulo;
-                if (repeat.axis & 0b100 != 0)  //z
-                    transformed.z = std.math.modf(transformed.z / repeat.modulo).fpart * repeat.modulo;
+                    transformed.y = mmodulo(transformed.y, repeat.modulo);
+                if (repeat.axis & 0b001 != 0)  //z
+                    transformed.z = mmodulo(transformed.z, repeat.modulo);
 
                 return self.repeat.o.distance(transformed);
             }
@@ -104,11 +96,16 @@ pub const Object = union(ObjectTypes) {
     pub fn initTransform(object: *Object, rotate: zlm.Vec3, scale: zlm.Vec3, translate: zlm.Vec3) !*Object {
         var ptr = try alloc.create(Object);
         errdefer alloc.destroy(ptr);
+        const cos = std.math.cos;
+        const sin = std.math.sin;
         ptr.* = .{ .transform = .{
             .o = object,
             .rotate = rotate,
             .scale = scale,
-            .translate = translate
+            .translate = translate,
+            ._xsincos = .{ .x = sin(rotate.x), .y = cos(rotate.x) },
+            ._ysincos = .{ .x = sin(rotate.y), .y = cos(rotate.y) },
+            ._zsincos = .{ .x = sin(rotate.z), .y = cos(rotate.z) },
         }};
         return ptr;
     }
@@ -124,7 +121,7 @@ pub const Object = union(ObjectTypes) {
         return ptr;
     }
 
-    pub fn initRepeat(axis: u3, modulo: f64, object: *Object) !*Object {
+    pub fn initRepeat(object: *Object, axis: u3, modulo: f64) !*Object {
         var ptr = try alloc.create(Object);
         errdefer alloc.destroy(ptr);
         ptr.* = .{ .repeat = .{
@@ -139,17 +136,17 @@ pub const Object = union(ObjectTypes) {
         switch (self) {
             .primitive => {},
             .transform => |transform| { 
-                transform.o.deinit(alloc);
+                transform.o.deinit();
                 alloc.destroy(transform.o); 
             },
             .csg => |csg| {
-                csg.a.deinit(alloc);
-                csg.b.deinit(alloc);
+                csg.a.deinit();
+                csg.b.deinit();
                 alloc.destroy(csg.a);
                 alloc.destroy(csg.b);
             },
             .repeat => |repeat| {
-                repeat.o.deinit(alloc);
+                repeat.o.deinit();
                 alloc.destroy(repeat.o); 
             }
         }
@@ -160,7 +157,10 @@ pub const Object = union(ObjectTypes) {
         o: *Object,
         rotate: zlm.Vec3,
         scale: zlm.Vec3,
-        translate: zlm.Vec3
+        translate: zlm.Vec3,
+        _xsincos: zlm.Vec2,
+        _ysincos: zlm.Vec2,
+        _zsincos: zlm.Vec2,
     },
     csg: struct {
         a: *Object,
@@ -179,5 +179,9 @@ pub const CSGType = enum(u2) {
     unionSDF,
     differenceSDF
 };
+
+fn mmodulo(f: f64, m: f64) f64 {
+    return @mod(f + m / 2, m) - m / 2;
+}
 
 //Guillaume Derex 2020

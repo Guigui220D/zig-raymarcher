@@ -6,10 +6,12 @@ const Renderable = @import("Renderable.zig");
 const Color = @import("color.zig").Color;
 const Image = @import("Image.zig");
 
+// TODO: make this an object and add current_settings and default_settings
 pub const settings = struct {
-    var hit_distance: f64 = 0.02;
-    var max_steps: usize = 128;
-    var max_reflections: usize = 20;
+    pub var hit_distance: f64 = 0.02;
+    pub var max_steps: usize = 128;
+    pub var max_reflections: usize = 6;
+    pub var preview: bool = false;
 };
 
 var render_node: *std.Progress.Node = undefined;
@@ -72,21 +74,17 @@ pub fn raymarch(scene: []const Renderable, start: zlm.Vec3, direction: zlm.Vec3,
     return while (i < settings.max_steps) : (i += 1) {
         var distance = distanceToScene(scene, ray);
 
+        if (distance <= 3 * settings.hit_distance)
+            i = 0;
+
         if (distance <= settings.hit_distance) {
             const obj = closestObject(scene, ray).?;
             const mat = obj.material;
 
             const norm_vec = normal(obj.*, ray);
-
-            if (mat.reflectivity == 0.0 or recursion == 0)
-                break mat.diffuse;
-
             const reflection = reflect(direction.normalize(), norm_vec);
 
-            march(&ray, reflection, settings.hit_distance * 1.1);
-            var refl_color = raymarch(scene, ray, reflection, recursion - 1);
-
-            const diffuse = if (mat.diffuse2) |pattern| blk: {
+            var diffuse = if (mat.diffuse2) |pattern| blk: {
                 const sum = math.floor(ray.x * 3) + math.floor(ray.y * 5) + math.floor(ray.z * 3);
                 if (@mod(sum, 2) < 0.1) {
                     break :blk mat.diffuse;
@@ -94,6 +92,14 @@ pub fn raymarch(scene: []const Renderable, start: zlm.Vec3, direction: zlm.Vec3,
                     break :blk pattern;
             } else
                 mat.diffuse;
+
+            diffuse = Color.mix(diffuse, .{ .r = 0, .g = 0, .b = 0 }, @sqrt(@floatCast(f32, norm_vec.normalize().dot(reflection))));
+
+            if (mat.reflectivity == 0.0 or recursion == 0)
+                break diffuse;
+
+            march(&ray, reflection, settings.hit_distance * 1.1);
+            var refl_color = raymarch(scene, ray, reflection, recursion - 1);
 
             break Color.mix(refl_color, diffuse, mat.reflectivity * @floatCast(f32, norm_vec.normalize().dot(reflection)));
         }
@@ -110,6 +116,11 @@ pub fn render(allocator: std.mem.Allocator, scene: []const Renderable, canvas: I
     if (canvas.width == 0 or canvas.height == 0)
         return error.canvasWrongFormat;
 
+    if (settings.preview) {
+        std.debug.print("/!\\ Running in preview mode!\n", .{});
+        settings.max_steps = 100;
+    }
+
     current_scene = scene;
     current_canvas = canvas;
 
@@ -124,6 +135,7 @@ pub fn render(allocator: std.mem.Allocator, scene: []const Renderable, canvas: I
     var progress = std.Progress{};
     render_node = try progress.start("Render", current_canvas.height);
     defer render_node.end();
+    render_node.activate();
 
     for (threads) |*thread| {
         thread.* = try std.Thread.spawn(.{}, renderSlice, .{});
@@ -139,12 +151,21 @@ fn renderSlice() !void {
         if (my_slice >= current_canvas.height)
             break;
 
-        //std.debug.print("Slice {} out of {}\n", .{ my_slice, current_canvas.height });
-
         const width = current_canvas.width;
         const begin = width * my_slice;
 
+        if (settings.preview and my_slice % 2 == 0) {
+            var x: usize = 0;
+            while (x < width) : (x += 1) {
+                current_canvas.data[begin + x] = .{ .r = 0, .g = 0, .b = 0, .a = 127 };
+            }
+            render_node.completeOne();
+            continue;
+        }
+
         const ry = (@intToFloat(f64, my_slice) - (fheight / 2.0)) / fwidth;
+
+        const refls = if (settings.preview) 2 else settings.max_reflections;
 
         var x: usize = 0;
         while (x < width) : (x += 1) {
@@ -152,7 +173,7 @@ fn renderSlice() !void {
 
             const direction = zlm.vec3(rx, ry, 1);
 
-            const col = raymarch(current_scene, zlm.Vec3.zero, direction.normalize(), settings.max_reflections);
+            const col = raymarch(current_scene, zlm.Vec3.zero, direction.normalize(), refls);
             current_canvas.data[begin + x] = col.to32BitsColor();
         }
 

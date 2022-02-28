@@ -5,13 +5,17 @@ pub fn build(b: *Builder) !void {
     const target = b.standardTargetOptions(.{});
     const mode = b.standardReleaseOptions();
 
-    const exe = b.addExecutable("init-exe", "src/main.zig");
+    const exe = b.addExecutable("raymarcher", "src/main.zig");
     exe.addPackagePath("zlm", "zlm/zlm.zig");
+    exe.addPackagePath("args", "zig-args/args.zig");
     exe.setTarget(target);
     exe.setBuildMode(mode);
     exe.install();
 
     const run_cmd = exe.run();
+    run_cmd.addArgs(&[_][]const u8{
+        "-t", "16"
+    });
     run_cmd.step.dependOn(b.getInstallStep());
 
     const run_step = b.step("run", "Run the app");
