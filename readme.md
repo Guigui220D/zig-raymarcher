@@ -22,4 +22,4 @@ Images are saved as TGA files.
 
 ### Screenshots
 
-![balls](https://github.com/Guigui220D/zig-raymarcher/blob/master/screenshots/balls.png)
+![weird](https://github.com/Guigui220D/zig-raymarcher/blob/master/screenshots/weird.png)
