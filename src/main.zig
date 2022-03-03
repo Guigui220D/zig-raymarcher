@@ -81,7 +81,7 @@ pub fn main() !void {
 
     std.debug.print("Rendering with {} threads...\n", .{cores});
     var timer = try std.time.Timer.start();
-    try raymarcher.render(allocator, scene, canvas, cores);
+    try raymarcher.render(allocator, scene, canvas, .{ .direction = .{ .x = 1, .y = -0.5, .z = 1 } }, cores);
     std.debug.print("Render took {}s.\n", .{timer.lap() / std.time.ns_per_s});
 
     try canvas.saveAsTGA(path);

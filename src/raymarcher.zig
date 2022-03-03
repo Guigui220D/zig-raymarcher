@@ -5,6 +5,7 @@ const math = std.math;
 const Renderable = @import("Renderable.zig");
 const Color = @import("color.zig").Color;
 const Image = @import("Image.zig");
+const Camera = @import("Camera.zig");
 
 // TODO: make this an object and add current_settings and default_settings
 pub const settings = struct {
@@ -17,11 +18,12 @@ pub const settings = struct {
 var render_node: *std.Progress.Node = undefined;
 var current_scene: []const Renderable = undefined;
 var current_canvas: Image = undefined;
+var current_camera: Camera = .{};
 var fwidth: f64 = undefined;
 var fheight: f64 = undefined;
 var next_slice: usize = 0;
 
-pub fn distanceToScene(scene: []const Renderable, pos: zlm.Vec3) f64 {
+fn distanceToScene(scene: []const Renderable, pos: zlm.Vec3) f64 {
     var distance: f64 = math.f64_max;
 
     for (scene) |renderable| {
@@ -32,7 +34,7 @@ pub fn distanceToScene(scene: []const Renderable, pos: zlm.Vec3) f64 {
     return distance;
 }
 
-pub fn closestObject(scene: []const Renderable, pos: zlm.Vec3) ?*const Renderable {
+fn closestObject(scene: []const Renderable, pos: zlm.Vec3) ?*const Renderable {
     var distance: f64 = math.f64_max;
     var obj: ?*const Renderable = null;
 
@@ -66,7 +68,7 @@ fn march(position: *zlm.Vec3, direction: zlm.Vec3, distance: f64) void {
     position.* = position.add(direction.scale(distance));
 }
 
-pub fn raymarch(scene: []const Renderable, start: zlm.Vec3, direction: zlm.Vec3, recursion: usize) Color {
+fn raymarch(scene: []const Renderable, start: zlm.Vec3, direction: zlm.Vec3, recursion: usize) Color {
     var i: usize = 0;
 
     var ray = start;
@@ -93,7 +95,10 @@ pub fn raymarch(scene: []const Renderable, start: zlm.Vec3, direction: zlm.Vec3,
             } else
                 mat.diffuse;
 
-            diffuse = Color.mix(diffuse, .{ .r = 0, .g = 0, .b = 0 }, @sqrt(@floatCast(f32, norm_vec.normalize().dot(reflection))));
+            var temp = @floatCast(f32, norm_vec.normalize().dot(reflection));
+            temp = std.math.clamp(temp, 0, 1);
+
+            diffuse = Color.mix(diffuse, .{ .r = 0, .g = 0, .b = 0 }, @sqrt(temp));
 
             if (mat.reflectivity == 0.0 or recursion == 0)
                 break diffuse;
@@ -112,7 +117,7 @@ pub fn raymarch(scene: []const Renderable, start: zlm.Vec3, direction: zlm.Vec3,
     };
 }
 
-pub fn render(allocator: std.mem.Allocator, scene: []const Renderable, canvas: Image, thread_count: usize) !void {
+pub fn render(allocator: std.mem.Allocator, scene: []const Renderable, canvas: Image, camera: Camera, thread_count: usize) !void {
     if (canvas.width == 0 or canvas.height == 0)
         return error.canvasWrongFormat;
 
@@ -123,6 +128,7 @@ pub fn render(allocator: std.mem.Allocator, scene: []const Renderable, canvas: I
 
     current_scene = scene;
     current_canvas = canvas;
+    current_camera = camera;
 
     fwidth = @intToFloat(f64, canvas.width);
     fheight = @intToFloat(f64, canvas.height);
@@ -171,9 +177,13 @@ fn renderSlice() !void {
         while (x < width) : (x += 1) {
             const rx = (@intToFloat(f64, x) - (fwidth / 2.0)) / fwidth;
 
-            const direction = zlm.vec3(rx, ry, 1);
-
-            const col = raymarch(current_scene, zlm.Vec3.zero, direction.normalize(), refls);
+            var direction = zlm.vec3(rx, ry, 1);
+            var actual_dir = zlm.Vec3.zero;
+            actual_dir = actual_dir.add(current_camera.getX().scale(direction.x));
+            actual_dir = actual_dir.add(current_camera.getY().scale(direction.y));
+            actual_dir = actual_dir.add(current_camera.getZ().scale(direction.z));
+            
+            const col = raymarch(current_scene, current_camera.origin, actual_dir.normalize(), refls);
             current_canvas.data[begin + x] = col.to32BitsColor();
         }
 
