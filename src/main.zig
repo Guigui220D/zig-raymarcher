@@ -1,5 +1,4 @@
 const std = @import("std");
-const args_parser = @import("args");
 const zlm = @import("zlm").SpecializeOn(f64);
 
 //const scene_loader = @import("scene_loader.zig");
@@ -16,50 +15,16 @@ pub fn main() !void {
     const allocator = gpa.allocator();
     defer _ = gpa.deinit();
 
-    // Arguments parsing
-    const args = args_parser.parseForCurrentProcess(struct {
-        // This declares long options for double hyphen
-        output: []const u8 = "test.tga",
-        threads: ?usize = null,
-        scene: ?[]const u8 = null,
-        preview: bool = false,
-
-        // This declares short-hand options for single hyphen
-        pub const shorthands = .{
-            .o = "output",
-            .t = "threads",
-            .s = "scene",
-            .p = "preview",
-        };
-    }, allocator, .print) catch return;
-    defer args.deinit();
-
-    raymarcher.settings.preview = args.options.preview;
-
     // Threads count argument
     var cores = 4 * try std.Thread.getCpuCount();
-    if (args.options.threads) |t| {
-        if (t == 0) {
-            cores = 1;
-        } else if (t > 256) {
-            std.debug.print("Threads count too big, defaulting to {}.\n", .{cores});
-        } else
-            cores = t;
-    }
     
     std.debug.print("Preparing the scene...\n", .{});
 
     Object.initArena(allocator);
     defer Object.freeArena();
 
-    var scene: Scene = undefined;
-    if (args.options.scene) |scene_file| {
-        _ = scene_file;
-        @panic("not implemented yet");
-    } else {
-        scene = try default_scene.get(allocator);
-        //scene = try scene_loader.loadSceneFromJson(@embedFile("test_scene.json"), allocator);
-    }
+    var scene: []Renderable = undefined;
+    scene = try default_scene.get(allocator);
     defer allocator.free(scene);
 
     // What should be in the scene file: everything needed for a deterministic render
