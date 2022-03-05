@@ -4,7 +4,7 @@ origin: zlm.Vec3 = zlm.Vec3.zero,
 direction: zlm.Vec3 = zlm.vec3(0, 0, 1),
 fov_modifier: f64 = 1,
 
-// ew i hate those
+// Those are here to create a vector base for the camera POV
 pub fn getZ(self: @This()) zlm.Vec3 {
     return self.direction.normalize();
 }
@@ -12,11 +12,7 @@ pub fn getZ(self: @This()) zlm.Vec3 {
 pub fn getY(self: @This()) zlm.Vec3 {
     const v = self.getX();
     const u = self.getZ();
-    return zlm.vec3(
-        u.y * v.z - u.z * v.y,
-        u.z * v.x - u.x * v.z,
-        u.x * v.y - u.y * v.x
-    );
+    return zlm.Vec3.cross(u, v);
 }
 
 pub fn getX(self: @This()) zlm.Vec3 {
@@ -28,3 +24,5 @@ pub fn getX(self: @This()) zlm.Vec3 {
     dir.z = -x;
     return dir;
 }
+
+//Guillaume Derex 2022

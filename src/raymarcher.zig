@@ -2,6 +2,7 @@ const zlm = @import("zlm").SpecializeOn(f64);
 const std = @import("std");
 const math = std.math;
 
+const Scene = @import("Scene.zig");
 const Renderable = @import("Renderable.zig");
 const Color = @import("color.zig").Color;
 const Image = @import("Image.zig");
@@ -16,7 +17,7 @@ pub const settings = struct {
 };
 
 var render_node: *std.Progress.Node = undefined;
-var current_scene: []const Renderable = undefined;
+var current_scene: Scene = undefined;
 var current_canvas: Image = undefined;
 var current_camera: Camera = .{};
 var fwidth: f64 = undefined;
@@ -68,19 +69,37 @@ fn march(position: *zlm.Vec3, direction: zlm.Vec3, distance: f64) void {
     position.* = position.add(direction.scale(distance));
 }
 
-fn raymarch(scene: []const Renderable, start: zlm.Vec3, direction: zlm.Vec3, recursion: usize) Color {
+// TODO: return info about how occluded is the path to the point instead of just bool
+// TODO: consider reflections? (that may be rly hard)
+fn raymarchToPoint(scene: []const Renderable, goal: zlm.Vec3, start: zlm.Vec3) bool {
+    const dir = goal.sub(start).normalize();
+    var ray = start;
+    march(&ray, dir, settings.hit_distance * 1.1);
+    
+    return while (true) {
+        if (goal.sub(ray).dot(dir) <= 0)
+            break true; // We got past the light
+        const distance = distanceToScene(scene.object, ray);
+        if (distance <= settings.hit_distance)
+            break false; // We hit an object
+        
+        march(&ray, dir, distance - (settings.hit_distance * 0.9));
+    };
+}
+
+fn raymarch(scene: Scene, start: zlm.Vec3, direction: zlm.Vec3, recursion: usize) Color {
     var i: usize = 0;
 
     var ray = start;
 
     return while (i < settings.max_steps) : (i += 1) {
-        var distance = distanceToScene(scene, ray);
+        const distance = distanceToScene(scene.object, ray);
 
         if (distance <= 3 * settings.hit_distance)
             i = 0;
 
         if (distance <= settings.hit_distance) {
-            const obj = closestObject(scene, ray).?;
+            const obj = closestObject(scene.object, ray).?;
             const mat = obj.material;
 
             const norm_vec = normal(obj.*, ray);
@@ -104,12 +123,13 @@ fn raymarch(scene: []const Renderable, start: zlm.Vec3, direction: zlm.Vec3, rec
                 break diffuse;
 
             march(&ray, reflection, settings.hit_distance * 1.1);
-            var refl_color = raymarch(scene, ray, reflection, recursion - 1);
+            var refl_color = raymarch(scene.object, ray, reflection, recursion - 1);
 
             break Color.mix(refl_color, diffuse, mat.reflectivity * @floatCast(f32, norm_vec.normalize().dot(reflection)));
         }
         march(&ray, direction, distance - (settings.hit_distance * 0.9));
     } else
+        // TODO: return skybox color instead
         Color{
         .r = 0,
         .g = 0,
@@ -117,7 +137,7 @@ fn raymarch(scene: []const Renderable, start: zlm.Vec3, direction: zlm.Vec3, rec
     };
 }
 
-pub fn render(allocator: std.mem.Allocator, scene: []const Renderable, canvas: Image, camera: Camera, thread_count: usize) !void {
+pub fn render(allocator: std.mem.Allocator, scene: Scene, canvas: Image, camera: Camera, thread_count: usize) !void {
     if (canvas.width == 0 or canvas.height == 0)
         return error.canvasWrongFormat;
 
@@ -191,4 +211,4 @@ fn renderSlice() !void {
     }
 }
 
-//Guillaume Derex 2020
+//Guillaume Derex 2020-2022

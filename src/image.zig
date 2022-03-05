@@ -61,4 +61,4 @@ height: usize,
 data: []color.Color32,
 allocator: std.mem.Allocator
 
-//Guillaume Derex 2020
+//Guillaume Derex 2020-2022

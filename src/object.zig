@@ -184,4 +184,4 @@ fn mmodulo(f: f64, m: f64) f64 {
     return @mod(f + m / 2, m) - m / 2;
 }
 
-//Guillaume Derex 2020
+//Guillaume Derex 2020-2022

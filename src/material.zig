@@ -4,4 +4,4 @@ diffuse: Color,
 reflectivity: f32,
 diffuse2: ?Color = null
 
-//Guillaume Derex 2020
+//Guillaume Derex 2020-2022

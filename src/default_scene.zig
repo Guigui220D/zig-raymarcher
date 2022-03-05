@@ -5,10 +5,12 @@ const zlm = z.SpecializeOn(f64);
 const primitive = @import("primitives.zig");
 const Color = @import("color.zig").Color;
 const Object = @import("object.zig").Object;
+const Scene = @import("scene.zig");
 const Renderable = @import("Renderable.zig");
 const Material = @import("Material.zig");
+const LightSource = @import("LightSource.zig");
 
-pub fn get(alloc: std.mem.Allocator) ![]Renderable {
+pub fn get(alloc: std.mem.Allocator) !Scene {
     const red = Material{ .diffuse = Color{ .r = 1.0, .g = 0, .b = 0 }, .diffuse2 = Color{ .r = 0.5, .g = 0, .b = 0 }, .reflectivity = 0.5 };
     const green = Material{ .diffuse = Color{ .r = 0, .g = 0.7, .b = 0 }, .reflectivity = 0 };
     const blue = Material{ .diffuse = Color{ .r = 0, .g = 0, .b = 1.0 }, .reflectivity = 0.8 };
@@ -55,7 +57,7 @@ pub fn get(alloc: std.mem.Allocator) ![]Renderable {
             try Object.initPrimitive(primitive.cube),
             zlm.vec3(z.toRadians(10.0), z.toRadians(10.0), z.toRadians(-10.0)),
             zlm.Vec3.all(6),
-            zlm.vec3(0, 1.5, 3)
+            zlm.vec3(0, 2, 3)
         )
     };
 
@@ -69,5 +71,12 @@ pub fn get(alloc: std.mem.Allocator) ![]Renderable {
         )
     };
 
-    return alloc.dupe(Renderable, &scene);
+    const lights: [0]LightSource = undefined;
+
+    return Scene{
+        .objects = try alloc.dupe(Renderable, &scene),
+        .lights = &lights
+    };
 }
+
+//Guillaume Derex 2020-2022

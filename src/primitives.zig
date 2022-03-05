@@ -50,4 +50,4 @@ pub fn none(pos: zlm.Vec3) f64 {
     return 10000000000;
 }
 
-//Guillaume Derex 2020
+//Guillaume Derex 2020-2022

@@ -29,4 +29,4 @@ pub const Color32 = packed struct {
     b: u8, g: u8, r: u8, a: u8
 };
 
-//Guillaume Derex 2020
+//Guillaume Derex 2020-2022

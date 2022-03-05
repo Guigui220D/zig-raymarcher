@@ -1,3 +1,5 @@
+// OBSOLETE (TODO)
+
 const std = @import("std");
 const zlm = @import("zlm").SpecializeOn(f64);
 const primitives = @import("primitives.zig");
@@ -161,3 +163,5 @@ fn objectFromJson(omap: std.json.ObjectMap) anyerror!?*Object {
 
     return obj;
 }
+
+//Guillaume Derex 2022
