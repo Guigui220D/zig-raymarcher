@@ -1,6 +1,3 @@
 [submodule "zlm"]
 	path = zlm
 	url = git@github.com:ziglibs/zlm.git
-[submodule "zig-args"]
-	path = zig-args
-	url = git@github.com:MasterQ32/zig-args.git
