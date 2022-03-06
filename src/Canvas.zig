@@ -60,15 +60,29 @@ pub fn saveAsTGA(self: Canvas, name: []const u8) !void {
 
 pub fn adjustColors(self: *Canvas) void {
     var floats: []f32 = undefined;
-    floats.ptr = @ptrCast([*]u8, &self.data[0]);
+    floats.ptr = @ptrCast([*]f32, &self.data[0]);
     floats.len = self.data.len * 3;
-    const min = std.mem.min(f32, floats);
-    const max = std.math.min(1, std.mem.max(f32, floats));
+    var max = std.math.max(1, std.mem.max(f32, floats));
+    const min = minMoreThan0(floats, max);
+
+    //max *= 1.1;
+    
     const range = max - min;
+
+    std.debug.print("adjust colors: min: {}; max: {}\n", .{ min, max });
 
     for (self.data) |*col| {
         col.adjust(min, range);
     }
-} 
+}
+
+fn minMoreThan0(vals: []const f32, max: f32) f32 {
+    var best: f32 = std.math.f32_max;
+    for (vals) |v| {
+        if (v < best and v > (max / 255))
+            best = v;
+    }
+    return best;
+}
 
 //Guillaume Derex 2022

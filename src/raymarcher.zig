@@ -76,15 +76,15 @@ fn raymarchToPoint(scene: []const Renderable, goal: zlm.Vec3, start: zlm.Vec3) b
     var ray = start;
     march(&ray, dir, settings.hit_distance * 1.1);
     
-    return while (true) {
+    while (true) {
         if (goal.sub(ray).dot(dir) <= 0)
-            break true; // We got past the light
-        const distance = distanceToScene(scene.object, ray);
+            return true; // We got past the light
+        const distance = distanceToScene(scene, ray);
         if (distance <= settings.hit_distance)
-            break false; // We hit an object
+            return false; // We hit an object
         
         march(&ray, dir, distance - (settings.hit_distance * 0.9));
-    };
+    }
 }
 
 fn raymarch(scene: Scene, start: zlm.Vec3, direction: zlm.Vec3, recursion: usize) Color {
@@ -114,10 +114,19 @@ fn raymarch(scene: Scene, start: zlm.Vec3, direction: zlm.Vec3, recursion: usize
             } else
                 mat.diffuse;
 
-            var temp = @floatCast(f32, norm_vec.normalize().dot(reflection));
-            temp = std.math.clamp(temp, 0, 1);
+            var light_sum: Color = scene.global_light.color;
+            for (scene.lights) |light| {
+                const dir = light.position.sub(ray).normalize();
+                const dot = @floatCast(f32, norm_vec.dot(dir));
+                if (dot < 0)
+                    continue;
+                if (raymarchToPoint(scene.objects, light.position, ray)) {
+                    light_sum = light_sum.add(light.color.scale(dot));
+                }
+                    
+            }
 
-            diffuse = Color.mix(diffuse, .{ .r = 0, .g = 0, .b = 0 }, @sqrt(temp));
+            diffuse = diffuse.mul(light_sum);
 
             if (mat.reflectivity == 0.0 or recursion == 0)
                 break diffuse;

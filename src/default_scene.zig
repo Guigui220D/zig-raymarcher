@@ -11,10 +11,15 @@ const Material = @import("Material.zig");
 const LightSource = @import("LightSource.zig");
 
 pub fn get(alloc: std.mem.Allocator) !Scene {
-    const red = Material{ .diffuse = Color{ .r = 1.0, .g = 0, .b = 0 }, .diffuse2 = Color{ .r = 0.5, .g = 0, .b = 0 }, .reflectivity = 0.5 };
-    const green = Material{ .diffuse = Color{ .r = 0, .g = 0.7, .b = 0 }, .reflectivity = 0 };
-    const blue = Material{ .diffuse = Color{ .r = 0, .g = 0, .b = 1.0 }, .reflectivity = 0.8 };
-    const mirror = Material{ .diffuse = Color{ .r = 1.0, .g = 1.0, .b = 1.0 }, .reflectivity = 0.8 };
+    // const red = Material{ .diffuse = Color{ .r = 1.0, .g = 0, .b = 0 }, .diffuse2 = Color{ .r = 0.5, .g = 0, .b = 0 }, .reflectivity = 0.5 };
+    // const green = Material{ .diffuse = Color{ .r = 0, .g = 0.7, .b = 0 }, .reflectivity = 0 };
+    // const blue = Material{ .diffuse = Color{ .r = 0, .g = 0, .b = 1.0 }, .reflectivity = 0.8 };
+    // const mirror = Material{ .diffuse = Color{ .r = 1.0, .g = 1.0, .b = 1.0 }, .reflectivity = 0.8 };
+
+    const red = Material{ .diffuse = Color{ .r = 1.0, .g = 1.0, .b = 1.0 }, .diffuse2 = Color{ .r = 0.5, .g = 0.5, .b = 0.5 } };
+    const green = Material{ .diffuse = Color{ .r = 1.0, .g = 1.0, .b = 1.0 } };
+    const blue = green;
+    const mirror = blue;
 
     var scene: [4]Renderable = undefined;
 
@@ -71,11 +76,14 @@ pub fn get(alloc: std.mem.Allocator) !Scene {
         )
     };
 
-    const lights: [0]LightSource = undefined;
+    var lights: [2]LightSource = undefined;
+
+    lights[0] = .{ .color = .{ .r = 0, .g = 1, .b = 0 }, .position = zlm.vec3(1, 1, -1) };
+    lights[1] = .{ .color = .{ .r = 1, .g = 0, .b = 1 }, .position = zlm.vec3(-1.2, 2, -1) };
 
     return Scene{
         .objects = try alloc.dupe(Renderable, &scene),
-        .lights = &lights,
+        .lights = try alloc.dupe(LightSource, &lights),
         .global_light = .{}
     };
 }

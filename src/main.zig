@@ -26,6 +26,7 @@ pub fn main() !void {
     var scene: Scene = undefined;
     scene = try default_scene.get(allocator);
     defer allocator.free(scene.objects);
+    defer allocator.free(scene.lights);
 
     // What should be in the scene file: everything needed for a deterministic render
     //  canvas size, materials, iterations
@@ -37,8 +38,10 @@ pub fn main() !void {
     // TODO: better prints (not debug)
     // TODO: matrix transforms
     var pathbuf: [512]u8 = undefined;
-    const canvas = try Canvas.init(allocator, 720, 576);
+
+    var canvas = try Canvas.init(allocator, 500, 500);
     defer canvas.deinit();
+
     var cam = Camera{};
     var point_a = zlm.Vec3.zero;
     var point_b = zlm.vec3(-4, 1, 3);
@@ -61,6 +64,7 @@ pub fn main() !void {
         //try raymarcher.render(allocator, scene, canvas, cam, cores);
         try raymarcher.render(allocator, scene, canvas, .{}, cores);
         
+        canvas.adjustColors();
         try canvas.saveAsTGA(path);
         std.debug.print("Frame saved to {s}.\n", .{path});
     }
