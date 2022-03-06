@@ -5,7 +5,7 @@ const math = std.math;
 const Scene = @import("Scene.zig");
 const Renderable = @import("Renderable.zig");
 const Color = @import("color.zig").Color;
-const Image = @import("Image.zig");
+const Canvas = @import("Canvas.zig");
 const Camera = @import("Camera.zig");
 
 // TODO: make this an object and add current_settings and default_settings
@@ -18,7 +18,7 @@ pub const settings = struct {
 
 var render_node: *std.Progress.Node = undefined;
 var current_scene: Scene = undefined;
-var current_canvas: Image = undefined;
+var current_canvas: Canvas = undefined;
 var current_camera: Camera = .{};
 var fwidth: f64 = undefined;
 var fheight: f64 = undefined;
@@ -93,13 +93,13 @@ fn raymarch(scene: Scene, start: zlm.Vec3, direction: zlm.Vec3, recursion: usize
     var ray = start;
 
     return while (i < settings.max_steps) : (i += 1) {
-        const distance = distanceToScene(scene.object, ray);
+        const distance = distanceToScene(scene.objects, ray);
 
         if (distance <= 3 * settings.hit_distance)
             i = 0;
 
         if (distance <= settings.hit_distance) {
-            const obj = closestObject(scene.object, ray).?;
+            const obj = closestObject(scene.objects, ray).?;
             const mat = obj.material;
 
             const norm_vec = normal(obj.*, ray);
@@ -123,10 +123,10 @@ fn raymarch(scene: Scene, start: zlm.Vec3, direction: zlm.Vec3, recursion: usize
                 break diffuse;
 
             march(&ray, reflection, settings.hit_distance * 1.1);
-            var refl_color = raymarch(scene.object, ray, reflection, recursion - 1);
+            var refl_color = raymarch(scene, ray, reflection, recursion - 1);
 
             break Color.mix(refl_color, diffuse, mat.reflectivity * @floatCast(f32, norm_vec.normalize().dot(reflection)));
-        }
+        }   
         march(&ray, direction, distance - (settings.hit_distance * 0.9));
     } else
         // TODO: return skybox color instead
@@ -137,7 +137,7 @@ fn raymarch(scene: Scene, start: zlm.Vec3, direction: zlm.Vec3, recursion: usize
     };
 }
 
-pub fn render(allocator: std.mem.Allocator, scene: Scene, canvas: Image, camera: Camera, thread_count: usize) !void {
+pub fn render(allocator: std.mem.Allocator, scene: Scene, canvas: Canvas, camera: Camera, thread_count: usize) !void {
     if (canvas.width == 0 or canvas.height == 0)
         return error.canvasWrongFormat;
 
@@ -183,7 +183,7 @@ fn renderSlice() !void {
         if (settings.preview and my_slice % 2 == 0) {
             var x: usize = 0;
             while (x < width) : (x += 1) {
-                current_canvas.data[begin + x] = .{ .r = 0, .g = 0, .b = 0, .a = 127 };
+                current_canvas.data[begin + x] = .{ .r = 0, .g = 0, .b = 0 };
             }
             render_node.completeOne();
             continue;
@@ -204,7 +204,7 @@ fn renderSlice() !void {
             actual_dir = actual_dir.add(current_camera.getZ().scale(direction.z));
             
             const col = raymarch(current_scene, current_camera.origin, actual_dir.normalize(), refls);
-            current_canvas.data[begin + x] = col.to32BitsColor();
+            current_canvas.data[begin + x] = col;
         }
 
         render_node.completeOne();

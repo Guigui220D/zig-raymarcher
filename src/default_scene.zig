@@ -5,7 +5,7 @@ const zlm = z.SpecializeOn(f64);
 const primitive = @import("primitives.zig");
 const Color = @import("color.zig").Color;
 const Object = @import("object.zig").Object;
-const Scene = @import("scene.zig");
+const Scene = @import("Scene.zig");
 const Renderable = @import("Renderable.zig");
 const Material = @import("Material.zig");
 const LightSource = @import("LightSource.zig");
@@ -75,7 +75,8 @@ pub fn get(alloc: std.mem.Allocator) !Scene {
 
     return Scene{
         .objects = try alloc.dupe(Renderable, &scene),
-        .lights = &lights
+        .lights = &lights,
+        .global_light = .{}
     };
 }
 

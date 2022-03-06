@@ -5,7 +5,7 @@ const zlm = @import("zlm").SpecializeOn(f64);
 const default_scene = @import("default_scene.zig");
 const raymarcher = @import("raymarcher.zig");
 const Object = @import("object.zig").Object;
-const Image = @import("Image.zig");
+const Canvas = @import("Canvas.zig");
 const Camera = @import("Camera.zig");
 const Scene = @import("Scene.zig");
 
@@ -23,9 +23,9 @@ pub fn main() !void {
     Object.initArena(allocator);
     defer Object.freeArena();
 
-    var scene: []Renderable = undefined;
+    var scene: Scene = undefined;
     scene = try default_scene.get(allocator);
-    defer allocator.free(scene);
+    defer allocator.free(scene.objects);
 
     // What should be in the scene file: everything needed for a deterministic render
     //  canvas size, materials, iterations
@@ -37,7 +37,7 @@ pub fn main() !void {
     // TODO: better prints (not debug)
     // TODO: matrix transforms
     var pathbuf: [512]u8 = undefined;
-    const canvas = try Image.init(allocator, 720, 576);
+    const canvas = try Canvas.init(allocator, 720, 576);
     defer canvas.deinit();
     var cam = Camera{};
     var point_a = zlm.Vec3.zero;
