@@ -20,16 +20,17 @@ pub fn deinit(self: Canvas) void {
     self.allocator.free(self.data);
 }
 
-pub fn saveAsTGA(self: Canvas, name: []const u8) !void {
-    var cwd = std.fs.cwd();
-    cwd.deleteFile(name) catch {};
+pub fn saveAsTGA(self: Canvas, io: std.Io, name: []const u8) !void {
+    const cwd = std.Io.Dir.cwd();
+    cwd.deleteFile(io, name) catch {};
 
-    var out = try cwd.createFile(name, .{});
-    defer out.close();
-    errdefer cwd.deleteFile(name) catch {};
-    var writer = out.writer();
+    var out = try cwd.createFile(io, name, .{});
+    defer out.close(io);
+    errdefer cwd.deleteFile(io, name) catch {};
+    var writer = out.writer(io, &.{});
+    const interf = &writer.interface;
 
-    try writer.writeAll(&[_]u8{
+    try interf.writeAll(&[_]u8{
         0, // ID length
         0, // No color map
         2, // Unmapped RGB
@@ -43,30 +44,30 @@ pub fn saveAsTGA(self: Canvas, name: []const u8) !void {
         0,
         0, // Y origin
     });
-    
-    try writer.writeIntLittle(u16, @truncate(u16, self.width));
-    try writer.writeIntLittle(u16, @truncate(u16, self.height));
 
-    try writer.writeAll(&[_]u8{
+    try interf.writeInt(u16, @truncate(self.width), .little);
+    try interf.writeInt(u16, @truncate(self.height), .little);
+
+    try interf.writeAll(&[_]u8{
         32, // Bit depth
         0, // Image descriptor
     });
 
     for (self.data) |fcol| {
         const c32 = fcol.to32BitsColor();
-        try writer.writeAll(std.mem.asBytes(&c32));
+        try interf.writeAll(std.mem.asBytes(&c32));
     }
 }
 
 pub fn adjustColors(self: *Canvas) void {
     var floats: []f32 = undefined;
-    floats.ptr = @ptrCast([*]f32, &self.data[0]);
+    floats.ptr = @ptrCast(&self.data[0]);
     floats.len = self.data.len * 3;
-    var max = std.math.max(1, std.mem.max(f32, floats));
+    const max = @max(1, std.mem.max(f32, floats));
     const min = minMoreThan0(floats, max);
 
     //max *= 1.1;
-    
+
     const range = max - min;
 
     std.debug.print("adjust colors: min: {}; max: {}\n", .{ min, max });
@@ -77,7 +78,7 @@ pub fn adjustColors(self: *Canvas) void {
 }
 
 fn minMoreThan0(vals: []const f32, max: f32) f32 {
-    var best: f32 = std.math.f32_max;
+    var best: f32 = std.math.floatMax(f32);
     for (vals) |v| {
         if (v < best and v > (max / 255))
             best = v;

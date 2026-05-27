@@ -1,5 +1,3 @@
-zig-cache/
 zig-out/
-NUL
-
-*.tga
+.zig-cache/
+zig-pkg/

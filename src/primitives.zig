@@ -1,8 +1,8 @@
-const zlm = @import("zlm").SpecializeOn(f64);
+const zlm = @import("zlm").as(f64);
 const std = @import("std");
 const math = std.math;
 
-pub const PrimitiveFn = fn (zlm.Vec3) f64;
+pub const PrimitiveFn = *const fn (zlm.Vec3) f64;
 
 pub fn primitiveFromName(name: []const u8) PrimitiveFn {
     // TODO: use comptime goodness
@@ -26,11 +26,11 @@ pub fn sphere(pos: zlm.Vec3) f64 {
 }
 
 pub fn cube(pos: zlm.Vec3) f64 {
-    return math.max(math.max(math.fabs(pos.x) - 1, math.fabs(pos.y) - 1), math.fabs(pos.z) - 1);
+    return @max(@max(@abs(pos.x) - 1, @abs(pos.y) - 1), @abs(pos.z) - 1);
 }
 
 pub fn plane(pos: zlm.Vec3) f64 {
-    return math.fabs(pos.y);
+    return @abs(pos.y);
 }
 
 pub fn half(pos: zlm.Vec3) f64 {
@@ -38,7 +38,7 @@ pub fn half(pos: zlm.Vec3) f64 {
 }
 
 pub fn testWall(pos: zlm.Vec3) f64 {
-    return math.fabs(pos.z - 10);
+    return @abs(pos.z - 10);
 }
 
 pub fn cylinder(pos: zlm.Vec3) f64 {

@@ -1,4 +1,4 @@
-const zlm = @import("zlm").SpecializeOn(f64);
+const zlm = @import("zlm").as(f64);
 
 origin: zlm.Vec3 = zlm.Vec3.zero,
 direction: zlm.Vec3 = zlm.vec3(0, 0, 1),
@@ -19,7 +19,7 @@ pub fn getX(self: @This()) zlm.Vec3 {
     var dir = self.getZ();
     dir.y = 0;
     dir = dir.normalize();
-    var x = dir.x;
+    const x = dir.x;
     dir.x = dir.z;
     dir.z = -x;
     return dir;
