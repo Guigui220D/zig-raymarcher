@@ -13,10 +13,6 @@ pub fn main(init: std.process.Init) !void {
     var allocator = init.gpa;
     const io = init.io;
 
-    // Threads count argument
-    const cores = 4 * try std.Thread.getCpuCount();
-    //const cores = 1;
-
     std.debug.print("Preparing the scene...\n", .{});
 
     Object.initArena(allocator);
@@ -27,8 +23,10 @@ pub fn main(init: std.process.Init) !void {
     defer allocator.free(scene.objects);
     defer allocator.free(scene.lights);
 
-    // What should be in the scene file: everything needed for a deterministic render
-    //  canvas size, materials, iterations
+    // What should be in the scene file: everything describing geometry
+    //  primitives, combinations, materials
+    // What should be in render setup file:
+    //  canvas size, iterations, camera position/path, render settings
     // What should be as args: things regarding performance, output place, and overrides
     //  threads count, override iterations
 
@@ -38,7 +36,7 @@ pub fn main(init: std.process.Init) !void {
     // TODO: matrix transforms
     var pathbuf: [512]u8 = undefined;
 
-    var canvas = try Canvas.init(allocator, 500, 500);
+    var canvas = try Canvas.init(allocator, 1000, 1000);
     defer canvas.deinit();
 
     var cam = Camera{};
@@ -58,10 +56,10 @@ pub fn main(init: std.process.Init) !void {
 
         const path = try std.fmt.bufPrint(&pathbuf, "render/frame{:0>4}.tga", .{frame});
 
-        std.debug.print("Rendering frame #{:0>4} with {} threads...\n", .{ frame, cores });
+        std.debug.print("Rendering frame #{:0>4}...\n", .{frame});
 
         //try raymarcher.render(allocator, scene, canvas, cam, cores);
-        try raymarcher.render(allocator, scene, canvas, .{}, cores);
+        try raymarcher.render(allocator, io, scene, canvas, .{});
 
         //std.debug.print("Adjusting colors...\n", .{});
 

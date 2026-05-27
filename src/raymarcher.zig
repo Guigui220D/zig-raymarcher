@@ -143,7 +143,7 @@ fn raymarch(scene: Scene, start: zlm.Vec3, direction: zlm.Vec3, recursion: usize
     };
 }
 
-pub fn render(allocator: std.mem.Allocator, scene: Scene, canvas: Canvas, camera: Camera, thread_count: usize) !void {
+pub fn render(_: std.mem.Allocator, io: std.Io, scene: Scene, canvas: Canvas, camera: Camera) !void {
     if (canvas.width == 0 or canvas.height == 0)
         return error.canvasWrongFormat;
 
@@ -161,53 +161,46 @@ pub fn render(allocator: std.mem.Allocator, scene: Scene, canvas: Canvas, camera
 
     next_slice = 0;
 
-    const threads = try allocator.alloc(std.Thread, thread_count);
-    defer allocator.free(threads);
+    var group: std.Io.Group = .init;
+    defer group.cancel(io);
 
-    for (threads) |*thread| {
-        thread.* = try std.Thread.spawn(.{}, renderSlice, .{});
+    for (0..current_canvas.height) |slice_y| {
+        group.async(io, renderSlice, .{slice_y});
     }
-    for (threads) |thread| {
-        thread.join();
-    }
+
+    try group.await(io);
 }
 
-fn renderSlice() !void {
-    while (true) {
-        const my_slice = @atomicRmw(usize, &next_slice, .Add, 1, .seq_cst); //Atomically increment and get task
-        if (my_slice >= current_canvas.height)
-            break;
+fn renderSlice(my_slice: usize) !void {
+    const width = current_canvas.width;
+    const begin = width * my_slice;
 
-        const width = current_canvas.width;
-        const begin = width * my_slice;
-
-        if (settings.preview and my_slice % 2 == 0) {
-            var x: usize = 0;
-            while (x < width) : (x += 1) {
-                current_canvas.data[begin + x] = .{ .r = 0, .g = 0, .b = 0 };
-            }
-            continue;
-        }
-
-        const slice_f: f64 = @floatFromInt(my_slice);
-        const ry: f64 = (slice_f - fheight / 2.0) / fwidth;
-
-        const refls = if (settings.preview) 2 else settings.max_reflections;
-
+    if (settings.preview and my_slice % 2 == 0) {
         var x: usize = 0;
         while (x < width) : (x += 1) {
-            const x_f: f64 = @floatFromInt(x);
-            const rx: f64 = (x_f - fwidth / 2.0) / fwidth;
-
-            const direction = zlm.vec3(rx, ry, 1);
-            var actual_dir = zlm.Vec3.zero;
-            actual_dir = actual_dir.add(current_camera.getX().scale(direction.x));
-            actual_dir = actual_dir.add(current_camera.getY().scale(direction.y));
-            actual_dir = actual_dir.add(current_camera.getZ().scale(direction.z));
-
-            const col = raymarch(current_scene, current_camera.origin, actual_dir.normalize(), refls);
-            current_canvas.data[begin + x] = col;
+            current_canvas.data[begin + x] = .{ .r = 0, .g = 0, .b = 0 };
         }
+        return;
+    }
+
+    const slice_f: f64 = @floatFromInt(my_slice);
+    const ry: f64 = (slice_f - fheight / 2.0) / fwidth;
+
+    const refls = if (settings.preview) 2 else settings.max_reflections;
+
+    var x: usize = 0;
+    while (x < width) : (x += 1) {
+        const x_f: f64 = @floatFromInt(x);
+        const rx: f64 = (x_f - fwidth / 2.0) / fwidth;
+
+        const direction = zlm.vec3(rx, ry, 1);
+        var actual_dir = zlm.Vec3.zero;
+        actual_dir = actual_dir.add(current_camera.getX().scale(direction.x));
+        actual_dir = actual_dir.add(current_camera.getY().scale(direction.y));
+        actual_dir = actual_dir.add(current_camera.getZ().scale(direction.z));
+
+        const col = raymarch(current_scene, current_camera.origin, actual_dir.normalize(), refls);
+        current_canvas.data[begin + x] = col;
     }
 }
 
