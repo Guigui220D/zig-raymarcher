@@ -6,4 +6,4 @@ const Renderable = @This();
 material: Material,
 object: *Object
 
-//Guillaume Derex 2022
+//Guillaume Derex 2026

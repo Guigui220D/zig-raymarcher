@@ -5,4 +5,4 @@ objects: []const Renderable,
 lights: []const LightSource,
 global_light: LightSource
 
-//Guillaume Derex 2022
+//Guillaume Derex 2026

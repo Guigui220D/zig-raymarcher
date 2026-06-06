@@ -196,7 +196,7 @@ fn renderSlice(my_slice: usize) !void {
         const direction = zlm.vec3(rx, ry, 1);
         var actual_dir = zlm.Vec3.zero;
         actual_dir = actual_dir.add(current_camera.getX().scale(direction.x));
-        actual_dir = actual_dir.add(current_camera.getY().scale(direction.y));
+        actual_dir = actual_dir.add(current_camera.getY().scale(-direction.y));
         actual_dir = actual_dir.add(current_camera.getZ().scale(direction.z));
 
         const col = raymarch(current_scene, current_camera.origin, actual_dir.normalize(), refls);
@@ -204,4 +204,4 @@ fn renderSlice(my_slice: usize) !void {
     }
 }
 
-//Guillaume Derex 2020-2022
+//Guillaume Derex 2020-2026

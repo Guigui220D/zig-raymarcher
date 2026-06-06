@@ -9,21 +9,10 @@ const Material = @import("Material.zig");
 const LightSource = @import("LightSource.zig");
 
 pub fn get(alloc: std.mem.Allocator) !Scene {
-    // const red = Material{ .diffuse = Color{ .r = 1.0, .g = 0, .b = 0 }, .diffuse2 = Color{ .r = 0.5, .g = 0, .b = 0 }, .reflectivity = 0.5 };
-    // const green = Material{ .diffuse = Color{ .r = 0, .g = 0.7, .b = 0 }, .reflectivity = 0 };
-    // const blue = Material{ .diffuse = Color{ .r = 0, .g = 0, .b = 1.0 }, .reflectivity = 0.8 };
-    // const mirror = Material{ .diffuse = Color{ .r = 1.0, .g = 1.0, .b = 1.0 }, .reflectivity = 0.8 };
-
-    const red = Material{
-        .diffuse = Color{ .r = 1.0, .g = 1.0, .b = 1.0 },
-        .diffuse2 = Color{ .r = 0.5, .g = 0.5, .b = 0.5 },
-    };
-    const green = Material{
-        .diffuse = Color{ .r = 1.0, .g = 1.0, .b = 1.0 },
-    };
-    const blue = green;
-    const mirror = blue;
-
+    const red = Material{ .diffuse = Color{ .r = 1.0, .g = 0, .b = 0 }, .diffuse2 = Color{ .r = 0.5, .g = 0, .b = 0 }, .reflectivity = 0.5 };
+    const green = Material{ .diffuse = Color{ .r = 0, .g = 0.7, .b = 0 }, .reflectivity = 0 };
+    const blue = Material{ .diffuse = Color{ .r = 0, .g = 0, .b = 1.0 }, .reflectivity = 0.8 };
+    const mirror = Material{ .diffuse = Color{ .r = 1.0, .g = 1.0, .b = 1.0 }, .reflectivity = 0.8 };
     var scene: [4]Renderable = undefined;
 
     scene[0] = .{
@@ -97,4 +86,4 @@ pub fn get(alloc: std.mem.Allocator) !Scene {
     };
 }
 
-//Guillaume Derex 2020-2022
+//Guillaume Derex 2020-2026

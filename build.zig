@@ -42,6 +42,7 @@ pub fn build(b: *std.Build) void {
     });
 
     const zlm_dep = b.dependency("zlm", .{});
+    const zigimg_dep = b.dependency("zigimg", .{});
 
     const exe = b.addExecutable(.{
         .name = "zig_raymarcher",
@@ -66,8 +67,10 @@ pub fn build(b: *std.Build) void {
                 // importing modules from different packages).
                 .{ .name = "zig_raymarcher", .module = mod },
                 .{ .name = "zlm", .module = zlm_dep.module("zlm") },
+                .{ .name = "zigimg", .module = zigimg_dep.module("zigimg") },
             },
         }),
+        .use_llvm = true, // zigimg crashes the compiler otherwise
     });
 
     // This declares intent for the executable to be installed into the
@@ -95,12 +98,6 @@ pub fn build(b: *std.Build) void {
     // By making the run step depend on the default step, it will be run from the
     // installation directory rather than directly from within the cache directory.
     run_cmd.step.dependOn(b.getInstallStep());
-
-    // This allows the user to pass arguments to the application in the build
-    // command itself, like this: `zig build run -- arg1 arg2 etc`
-    if (b.args) |args| {
-        run_cmd.addArgs(args);
-    }
 
     // Creates an executable that will run `test` blocks from the provided module.
     // Here `mod` needs to define a target, which is why earlier we made sure to

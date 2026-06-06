@@ -7,7 +7,7 @@ pub const Color = struct {
             .r = @intFromFloat(math.clamp(self.r, 0.0, 1.0) * 255.0),
             .g = @intFromFloat(math.clamp(self.g, 0.0, 1.0) * 255.0),
             .b = @intFromFloat(math.clamp(self.b, 0.0, 1.0) * 255.0),
-            .a = 0xff,
+            .a = @intFromFloat(math.clamp(self.a, 0.0, 1.0) * 255.0),
         };
     }
 
@@ -42,8 +42,9 @@ pub const Color = struct {
     r: f32,
     g: f32,
     b: f32,
+    a: f32 = 1.0,
 };
 
 pub const Color32 = packed struct { b: u8, g: u8, r: u8, a: u8 };
 
-//Guillaume Derex 2020-2022
+//Guillaume Derex 2020-2026

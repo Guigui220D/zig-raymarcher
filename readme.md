@@ -10,7 +10,7 @@ Images are saved as TGA files.
 
 - [x] render basic shapes with no shader
 - [x] CSG (constructive geometry)
-- [ ] other math operations like repetitions
+- [x] other math operations like repetitions
 - [x] reflections
 - [ ] refractions
 - [ ] better shaders

@@ -6,22 +6,23 @@ const default_scene = @import("default_scene.zig");
 const raymarcher = @import("raymarcher.zig");
 const Object = @import("object.zig").Object;
 const Canvas = @import("Canvas.zig");
+const image_save = @import("image_save.zig");
 const Camera = @import("Camera.zig");
 const Scene = @import("Scene.zig");
 
 pub fn main(init: std.process.Init) !void {
-    var allocator = init.gpa;
+    var alloc = init.gpa;
     const io = init.io;
 
     std.debug.print("Preparing the scene...\n", .{});
 
-    Object.initArena(allocator);
+    Object.initArena(alloc);
     defer Object.freeArena();
 
     var scene: Scene = undefined;
-    scene = try default_scene.get(allocator);
-    defer allocator.free(scene.objects);
-    defer allocator.free(scene.lights);
+    scene = try default_scene.get(alloc);
+    defer alloc.free(scene.objects);
+    defer alloc.free(scene.lights);
 
     // What should be in the scene file: everything describing geometry
     //  primitives, combinations, materials
@@ -36,7 +37,7 @@ pub fn main(init: std.process.Init) !void {
     // TODO: matrix transforms
     var pathbuf: [512]u8 = undefined;
 
-    var canvas = try Canvas.init(allocator, 1000, 1000);
+    var canvas = try Canvas.init(alloc, 1000, 1000);
     defer canvas.deinit();
 
     var cam = Camera{};
@@ -54,24 +55,23 @@ pub fn main(init: std.process.Init) !void {
         cam.origin = campos;
         cam.direction = camdir;
 
-        const path = try std.fmt.bufPrint(&pathbuf, "render/frame{:0>4}.tga", .{frame});
+        // TODO: create folder if its not here
+        const path = try std.fmt.bufPrint(&pathbuf, "render/frame{:0>4}.png", .{frame});
 
         std.debug.print("Rendering frame #{:0>4}...\n", .{frame});
 
-        //try raymarcher.render(allocator, scene, canvas, cam, cores);
-        try raymarcher.render(allocator, io, scene, canvas, .{});
+        //try raymarcher.render(alloc, scene, canvas, cam, cores);
+        try raymarcher.render(alloc, io, scene, canvas, .{});
 
         //std.debug.print("Adjusting colors...\n", .{});
-
         canvas.adjustColors();
 
         std.debug.print("Saving...\n", .{});
-
-        try canvas.saveAsTGA(io, path);
+        try image_save.saveAs(alloc, io, &canvas, path);
         std.debug.print("Frame saved to {s}.\n", .{path});
     }
     //std.debug.print("Finished all frames. It took {}s.\n", .{timer.lap() / std.time.ns_per_s});
     std.debug.print("Finished all frames.\n", .{});
 }
 
-//Guillaume Derex 2020-2022
+//Guillaume Derex 2020-2026
