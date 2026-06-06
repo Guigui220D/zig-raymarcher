@@ -149,7 +149,9 @@ pub fn render(_: std.mem.Allocator, io: std.Io, scene: Scene, canvas: Canvas, ca
 
     if (settings.preview) {
         std.debug.print("/!\\ Running in preview mode!\n", .{});
-        settings.max_steps = 100;
+        settings.max_steps /= 2;
+        settings.max_reflections /= 2;
+        settings.hit_distance *= 2;
     }
 
     current_scene = scene;
@@ -186,8 +188,6 @@ fn renderSlice(my_slice: usize) !void {
     const slice_f: f64 = @floatFromInt(my_slice);
     const ry: f64 = (slice_f - fheight / 2.0) / fwidth;
 
-    const refls = if (settings.preview) 2 else settings.max_reflections;
-
     var x: usize = 0;
     while (x < width) : (x += 1) {
         const x_f: f64 = @floatFromInt(x);
@@ -199,7 +199,12 @@ fn renderSlice(my_slice: usize) !void {
         actual_dir = actual_dir.add(current_camera.getY().scale(-direction.y));
         actual_dir = actual_dir.add(current_camera.getZ().scale(direction.z));
 
-        const col = raymarch(current_scene, current_camera.origin, actual_dir.normalize(), refls);
+        const col = raymarch(
+            current_scene,
+            current_camera.origin,
+            actual_dir.normalize(),
+            settings.max_reflections,
+        );
         current_canvas.data[begin + x] = col;
     }
 }

@@ -13,6 +13,7 @@ pub fn get(alloc: std.mem.Allocator) !Scene {
     const green = Material{ .diffuse = Color{ .r = 0, .g = 0.7, .b = 0 }, .reflectivity = 0 };
     const blue = Material{ .diffuse = Color{ .r = 0, .g = 0, .b = 1.0 }, .reflectivity = 0.8 };
     const mirror = Material{ .diffuse = Color{ .r = 1.0, .g = 1.0, .b = 1.0 }, .reflectivity = 0.8 };
+
     var scene: [4]Renderable = undefined;
 
     scene[0] = .{

@@ -14,6 +14,19 @@ pub fn main(init: std.process.Init) !void {
     var alloc = init.gpa;
     const io = init.io;
 
+    { // Check arguments
+        var it = init.minimal.args.iterate();
+        while (it.next()) |arg| {
+            if (std.ascii.eqlIgnoreCase(arg, "preview"))
+                raymarcher.settings.preview = true;
+        }
+    }
+
+    { // Try to create render folder
+        const cwd = std.Io.Dir.cwd();
+        cwd.createDir(io, "render", .default_dir) catch {};
+    }
+
     std.debug.print("Preparing the scene...\n", .{});
 
     Object.initArena(alloc);
@@ -55,7 +68,6 @@ pub fn main(init: std.process.Init) !void {
         cam.origin = campos;
         cam.direction = camdir;
 
-        // TODO: create folder if its not here
         const path = try std.fmt.bufPrint(&pathbuf, "render/frame{:0>4}.png", .{frame});
 
         std.debug.print("Rendering frame #{:0>4}...\n", .{frame});
