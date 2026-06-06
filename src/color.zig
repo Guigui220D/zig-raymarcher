@@ -39,9 +39,9 @@ pub const Color = struct {
         return Color{ .r = self.r * real, .g = self.g * real, .b = self.b * real };
     }
 
-    r: f32,
-    g: f32,
-    b: f32,
+    r: f32 = 1.0,
+    g: f32 = 1.0,
+    b: f32 = 1.0,
     a: f32 = 1.0,
 };
 

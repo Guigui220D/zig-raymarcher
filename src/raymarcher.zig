@@ -99,7 +99,7 @@ fn raymarch(scene: Scene, start: zlm.Vec3, direction: zlm.Vec3, recursion: usize
 
         if (distance <= settings.hit_distance) {
             const obj = closestObject(scene.objects, ray).?;
-            const mat = obj.material;
+            const mat = scene.materials[obj.material_id];
 
             const norm_vec = normal(obj.*, ray);
             const reflection = reflect(direction.normalize(), norm_vec);

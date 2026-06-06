@@ -1,8 +1,21 @@
 {
     "camera": {},
     "materials": {
-        "metal": "todo",
-        "red": "todo"
+        "metal": {
+            "diffuse": {
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0
+            },
+            "reflectivity": 0.8
+        },
+        "red": {
+            "diffuse": {
+                "r": 0.9,
+                "g": 0.1,
+                "b": 0.1
+            }
+        }
     },
     "contents": [
         {

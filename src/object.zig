@@ -6,20 +6,6 @@ const Material = @import("Material.zig");
 const ObjectTypes = enum { primitive, transform, csg, repeat };
 
 pub const Object = union(ObjectTypes) {
-    var arena: std.heap.ArenaAllocator = undefined;
-    var alloc: std.mem.Allocator = undefined;
-
-    pub fn initArena(allocator: std.mem.Allocator) void {
-        arena = std.heap.ArenaAllocator.init(allocator);
-        alloc = arena.allocator();
-    }
-
-    pub fn freeArena() void {
-        arena.deinit();
-        arena = undefined;
-        alloc = undefined;
-    }
-
     pub fn distance(self: Object, pos: zlm.Vec3) f64 {
         switch (self) {
             .primitive => return self.primitive(pos),
@@ -81,14 +67,14 @@ pub const Object = union(ObjectTypes) {
         }
     }
 
-    pub fn initPrimitive(function: PrimitiveFn) !*Object {
+    pub fn initPrimitive(alloc: std.mem.Allocator, function: PrimitiveFn) !*Object {
         const ptr = try alloc.create(Object);
         errdefer alloc.destroy(ptr);
         ptr.* = .{ .primitive = function };
         return ptr;
     }
 
-    pub fn initTransform(object: *Object, rotate: zlm.Vec3, scale: zlm.Vec3, translate: zlm.Vec3) !*Object {
+    pub fn initTransform(alloc: std.mem.Allocator, object: *Object, rotate: zlm.Vec3, scale: zlm.Vec3, translate: zlm.Vec3) !*Object {
         const ptr = try alloc.create(Object);
         errdefer alloc.destroy(ptr);
         const cos = std.math.cos;
@@ -105,21 +91,21 @@ pub const Object = union(ObjectTypes) {
         return ptr;
     }
 
-    pub fn initCSG(obj_a: *Object, obj_b: *Object, csg: CSGType) !*Object {
+    pub fn initCSG(alloc: std.mem.Allocator, obj_a: *Object, obj_b: *Object, csg: CSGType) !*Object {
         const ptr = try alloc.create(Object);
         errdefer alloc.destroy(ptr);
         ptr.* = .{ .csg = .{ .a = obj_a, .b = obj_b, .mode = csg } };
         return ptr;
     }
 
-    pub fn initRepeat(object: *Object, axis: u3, modulo: f64) !*Object {
+    pub fn initRepeat(alloc: std.mem.Allocator, object: *Object, axis: u3, modulo: f64) !*Object {
         const ptr = try alloc.create(Object);
         errdefer alloc.destroy(ptr);
         ptr.* = .{ .repeat = .{ .o = object, .axis = axis, .modulo = modulo } };
         return ptr;
     }
 
-    pub fn deinit(self: Object) void {
+    pub fn deinit(self: Object, alloc: std.mem.Allocator) void {
         switch (self) {
             .primitive => {},
             .transform => |transform| {

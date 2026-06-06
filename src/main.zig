@@ -2,7 +2,7 @@ const std = @import("std");
 const zlm = @import("zlm").as(f64);
 
 //const scene_loader = @import("scene_loader.zig");
-const default_scene = @import("default_scene.zig");
+const scene_loader = @import("scene_loader.zig");
 const raymarcher = @import("raymarcher.zig");
 const Object = @import("object.zig").Object;
 const Canvas = @import("Canvas.zig");
@@ -11,7 +11,7 @@ const Camera = @import("Camera.zig");
 const Scene = @import("Scene.zig");
 
 pub fn main(init: std.process.Init) !void {
-    var alloc = init.gpa;
+    const alloc = init.gpa;
     const io = init.io;
 
     { // Check arguments
@@ -29,13 +29,8 @@ pub fn main(init: std.process.Init) !void {
 
     std.debug.print("Preparing the scene...\n", .{});
 
-    Object.initArena(alloc);
-    defer Object.freeArena();
-
-    var scene: Scene = undefined;
-    scene = try default_scene.get(alloc);
-    defer alloc.free(scene.objects);
-    defer alloc.free(scene.lights);
+    const scene: Scene = try scene_loader.loadScene(alloc, io, "scenes/test_scene.json");
+    defer scene.deinit();
 
     // What should be in the scene file: everything describing geometry
     //  primitives, combinations, materials
@@ -72,7 +67,6 @@ pub fn main(init: std.process.Init) !void {
 
         std.debug.print("Rendering frame #{:0>4}...\n", .{frame});
 
-        //try raymarcher.render(alloc, scene, canvas, cam, cores);
         try raymarcher.render(alloc, io, scene, canvas, .{});
 
         //std.debug.print("Adjusting colors...\n", .{});
