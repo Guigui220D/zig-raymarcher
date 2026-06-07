@@ -23,8 +23,8 @@
             "material": "red",
             "object": {
                 "type": "transform",
-                "y": -1.0,
-                "z": 4.0,
+                "y": -1,
+                "z": 4,
                 "object": {
                     "type": "csg",
                     "csg": "difference",
@@ -34,7 +34,7 @@
                     },
                     "object2": {
                         "type": "transform",
-                        "scale": 7.0,
+                        "scale": 7,
                         "object": {
                             "type": "primitive",
                             "primitive": "cylinder"
@@ -47,10 +47,10 @@
             "material": "blue",
             "object": {
                 "type": "transform",
-                "yaw": 1.0,
-                "x": 2.0,
-                "y": -3.0,
-                "z": 7.0,
+                "yaw": 1,
+                "x": 2,
+                "y": -3,
+                "z": 7,
                 "object": {
                     "type": "repeat",
                     "axis": "xz",
@@ -66,12 +66,12 @@
             "material": "mirror",
             "object": {
                 "type": "transform",
-                "pitch": -10.0,
-                "yaw": 10.0,
-                "roll": 10.0,
-                "scale": 6.0,
-                "y": 2.0,
-                "z": 3.0,
+                "pitch": -10,
+                "yaw": 10,
+                "roll": 10,
+                "scale": 6,
+                "y": 2,
+                "z": 3,
                 "object": {
                     "type": "primitive",
                     "primitive": "cube"
@@ -83,12 +83,12 @@
             "material": "green",
             "object": {
                 "type": "transform",
-                "x": 3.0,
-                "z": 6.0,
-                "scale": 2.0,
-                "pitch": 10.0,
-                "yaw": 10.0,
-                "roll": 10.0,
+                "x": 3,
+                "z": 6,
+                "scale": 2,
+                "pitch": 10,
+                "yaw": 10,
+                "roll": 10,
                 "object": {
                     "type": "primitive",
                     "primitive": "cylinder"

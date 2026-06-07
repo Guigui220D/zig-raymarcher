@@ -189,8 +189,8 @@ pub fn render(_: std.mem.Allocator, io: std.Io, scene: Scene, canvas: Canvas, ca
     if (settings.preview) {
         std.debug.print("/!\\ Running in preview mode!\n", .{});
         settings.max_steps /= 2;
-        settings.max_reflections /= 2;
-        settings.max_steps_getting_closer /= 2;
+        settings.max_reflections = 1;
+        settings.max_steps_getting_closer = settings.max_steps * 2;
         settings.hit_distance *= 2;
     }
 
@@ -217,6 +217,7 @@ fn renderSlice(my_slice: usize) !void {
     const width = current_canvas.width;
     const begin = width * my_slice;
 
+    // TODO: make previews look more color-accurate
     if (settings.preview and my_slice % 2 == 0) {
         var x: usize = 0;
         while (x < width) : (x += 1) {

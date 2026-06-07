@@ -75,7 +75,7 @@ pub fn main(init: std.process.Init) !void {
         cam.origin = campos;
         cam.direction = camdir;
 
-        const path = try std.fmt.bufPrint(&pathbuf, "render/frame{:0>4}.png", .{frame});
+        const path = try std.fmt.bufPrint(&pathbuf, "render/frame{:0>4}.jpg", .{frame});
 
         std.debug.print("Rendering frame #{:0>4}...\n", .{frame});
 

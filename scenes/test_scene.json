@@ -17,7 +17,7 @@
             "material": "metal",
             "object": {
                 "type": "transform",
-                "y": -2.0,
+                "y": -2,
                 "roll": 0.3,
                 "object": {
                     "type": "primitive",
@@ -29,9 +29,9 @@
             "material": "red",
             "object": {
                 "type": "transform",
-                "x": 1.0,
+                "x": 1,
                 "y": 0.5,
-                "z": 7.0,
+                "z": 7,
                 "object": {
                     "type": "primitive",
                     "primitive": "sphere"

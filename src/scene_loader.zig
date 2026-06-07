@@ -150,23 +150,18 @@ fn readMaterial(value: *std.json.Value) !Material {
     const mat_def = &value.object;
 
     // Get colors
-    if (mat_def.get("diffuse")) |dif_entry| {
+    if (mat_def.get("diffuse")) |dif_entry|
         new_mat.diffuse = try readColor(&dif_entry);
-    }
-    if (mat_def.get("diffuse2")) |dif_entry| {
+    if (mat_def.get("diffuse2")) |dif_entry|
         new_mat.diffuse2 = try readColor(&dif_entry);
-    }
+
     // Reflectivity
-    if (mat_def.get("reflectivity")) |refl_entry| {
-        const refl = refl_entry.float;
-        new_mat.reflectivity = @floatCast(refl);
-    }
+    if (mat_def.get("reflectivity")) |refl_entry|
+        new_mat.reflectivity = try readScalar(f32, &refl_entry);
     // Smoothness
-    if (mat_def.get("smoothness")) |smooth_entry| {
-        const smooth = smooth_entry.float;
-        new_mat.smoothness = @floatCast(smooth);
-    }
-    // TODO: diffuse2 or advanced textures
+    if (mat_def.get("smoothness")) |smooth_entry|
+        new_mat.smoothness = try readScalar(f32, &smooth_entry);
+    // TODO: more advanced textures
 
     return new_mat;
 }
@@ -200,62 +195,34 @@ fn readTransformObject(alloc: std.mem.Allocator, object: *const std.json.ObjectM
     // TODO: support integers
 
     // Translation
-    if (object.get("x")) |x| {
-        if (x != .float)
-            return error.BadTransformJson;
-        translate.x = x.float;
-    }
-    if (object.get("y")) |y| {
-        if (y != .float)
-            return error.BadTransformJson;
-        translate.y = y.float;
-    }
-    if (object.get("z")) |z| {
-        if (z != .float)
-            return error.BadTransformJson;
-        translate.z = z.float;
-    }
+    if (object.get("x")) |x|
+        translate.x = try readScalar(f64, &x);
+    if (object.get("y")) |y|
+        translate.y = try readScalar(f64, &y);
+    if (object.get("z")) |z|
+        translate.z = try readScalar(f64, &z);
 
     // Rotation
-    if (object.get("roll")) |roll| {
-        if (roll != .float)
-            return error.BadTransformJson;
-        rotate.x = zlm.toRadians(roll.float);
-    }
-    if (object.get("yaw")) |yaw| {
-        if (yaw != .float)
-            return error.BadTransformJson;
-        rotate.y = zlm.toRadians(yaw.float);
-    }
-    if (object.get("pitch")) |pitch| {
-        if (pitch != .float)
-            return error.BadTransformJson;
-        rotate.z = zlm.toRadians(pitch.float);
-    }
+    if (object.get("roll")) |roll|
+        rotate.x = zlm.toRadians(try readScalar(f64, &roll));
+    if (object.get("yaw")) |yaw|
+        rotate.y = zlm.toRadians(try readScalar(f64, &yaw));
+    if (object.get("pitch")) |pitch|
+        rotate.z = zlm.toRadians(try readScalar(f64, &pitch));
 
     // Scale
     if (object.get("scale")) |fullscale| {
-        if (fullscale != .float)
-            return error.BadTransformJson;
-        scale.x = fullscale.float;
-        scale.y = fullscale.float;
-        scale.z = fullscale.float;
+        const scale_val = try readScalar(f64, &fullscale);
+        scale.x = scale_val;
+        scale.y = scale_val;
+        scale.z = scale_val;
     }
-    if (object.get("sx")) |x| {
-        if (x != .float)
-            return error.BadTransformJson;
-        scale.x = x.float;
-    }
-    if (object.get("sy")) |y| {
-        if (y != .float)
-            return error.BadTransformJson;
-        scale.y = y.float;
-    }
-    if (object.get("sz")) |z| {
-        if (z != .float)
-            return error.BadTransformJson;
-        scale.z = z.float;
-    }
+    if (object.get("sx")) |x|
+        scale.x = try readScalar(f64, &x);
+    if (object.get("sy")) |y|
+        scale.y = try readScalar(f64, &y);
+    if (object.get("sz")) |z|
+        scale.z = try readScalar(f64, &z);
 
     // Get object
     const obj_def = object.get("object") orelse return error.BadTransformJson;
@@ -345,6 +312,7 @@ fn readRepeatObject(alloc: std.mem.Allocator, object: *const std.json.ObjectMap)
 
     // Get period
     const period = object.get("period") orelse return error.BadRepeatJson;
+    const period_val = try readScalar(f64, &period);
 
     // Get object
     const obj_def = object.get("object") orelse return error.BadTransformJson;
@@ -357,9 +325,17 @@ fn readRepeatObject(alloc: std.mem.Allocator, object: *const std.json.ObjectMap)
     return Object{
         .repeat = .{
             .axis = axis_flags,
-            .modulo = period.float,
+            .modulo = period_val,
             .o = obj_copy,
         },
+    };
+}
+
+fn readScalar(FloatT: type, value: *const std.json.Value) !FloatT {
+    return switch (value.*) {
+        .float => |val| @floatCast(val),
+        .integer => |val| @floatFromInt(val),
+        else => error.BadScalarJson,
     };
 }
 
