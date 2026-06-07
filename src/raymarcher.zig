@@ -217,20 +217,18 @@ fn renderSlice(my_slice: usize) !void {
     const width = current_canvas.width;
     const begin = width * my_slice;
 
-    // TODO: make previews look more color-accurate
-    if (settings.preview and my_slice % 2 == 0) {
-        var x: usize = 0;
-        while (x < width) : (x += 1) {
-            current_canvas.data[begin + x] = .{ .r = 0, .g = 0, .b = 0 };
-        }
-        return;
-    }
-
     const slice_f: f64 = @floatFromInt(my_slice);
     const ry: f64 = (slice_f - fheight / 2.0) / fwidth;
 
+    var last_col: Color = undefined;
+
     var x: usize = 0;
     while (x < width) : (x += 1) {
+        if (settings.preview and x % 2 == 1) {
+            current_canvas.data[begin + x] = last_col;
+            continue;
+        }
+
         const x_f: f64 = @floatFromInt(x);
         const rx: f64 = (x_f - fwidth / 2.0) / fwidth;
 
@@ -247,6 +245,7 @@ fn renderSlice(my_slice: usize) !void {
             actual_dir.normalize(),
             settings.max_reflections,
         );
+        last_col = col;
         current_canvas.data[begin + x] = col;
     }
 }

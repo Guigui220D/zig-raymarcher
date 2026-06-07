@@ -74,8 +74,8 @@ pub fn loadScene(alloc: std.mem.Allocator, io: std.Io, path: []const u8) !Scene 
         .arena = arena,
         .materials = try mats.toOwnedSlice(arena_alloc),
         .objects = try objs.toOwnedSlice(arena_alloc),
-        .lights = &[1]LightSource{.{}},
-        .global_light = .{},
+        .lights = &[1]LightSource{.{}}, // TODO: lights
+        .global_light = .{}, // TODO: global light and skybox
     };
 }
 
