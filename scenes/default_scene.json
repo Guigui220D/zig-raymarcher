@@ -1,0 +1,151 @@
+{
+  "camera": {},
+  "materials": {
+    "red": {
+      "diffuse": {
+        "r": 1.0,
+        "g": 0.0,
+        "b": 0.0
+      },
+      "diffuse2": {
+        "r": 0.5,
+        "g": 0.0,
+        "b": 0.0
+      },
+      "reflectivity": 0.5
+    },
+    "green": {
+      "diffuse": {
+        "r": 0.0,
+        "g": 0.7,
+        "b": 0.0
+      }
+    },
+    "blue": {
+      "diffuse": {
+        "r": 0.0,
+        "g": 0.0,
+        "b": 1.0
+      },
+      "reflectivity": 0.8
+    },
+    "mirror": {
+      "diffuse": {
+        "r": 1.0,
+        "g": 1.0,
+        "b": 1.0
+      },
+      "reflectivity": 0.8
+    }
+  },
+  "lights": [
+    {
+      "position": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": -1.0
+      },
+      "color": {
+        "r": 0.0,
+        "g": 1.0,
+        "b": 0.0
+      }
+    },
+    {
+      "position": {
+        "x": -1.2,
+        "y": 2.0,
+        "z": -1.0
+      },
+      "color": {
+        "r": 1.0,
+        "g": 0.0,
+        "b": 1.0
+      }
+    }
+  ],
+  "contents": [
+    {
+      "material": "red",
+      "object": {
+        "type": "transform",
+        "z": 4.0,
+        "object": {
+          "type": "csg",
+          "operation": "difference",
+          "a": {
+            "type": "primitive",
+            "primitive": "half"
+          },
+          "b": {
+            "type": "transform",
+            "scale": {
+              "x": 7.0,
+              "y": 7.0,
+              "z": 7.0
+            },
+            "object": {
+              "type": "primitive",
+              "primitive": "cylinder"
+            }
+          }
+        }
+      }
+    },
+    {
+      "material": "blue",
+      "object": {
+        "type": "transform",
+        "x": 2.0,
+        "y": -3.0,
+        "z": 7.0,
+        "yaw": 0.174533,
+        "object": {
+          "type": "repeat",
+          "axes": [
+            "x",
+            "z"
+          ],
+          "spacing": 2.2,
+          "object": {
+            "type": "primitive",
+            "primitive": "sphere"
+          }
+        }
+      }
+    },
+    {
+      "material": "mirror",
+      "object": {
+        "type": "transform",
+        "y": 2.0,
+        "z": 3.0,
+        "pitch": 0.174533,
+        "yaw": 0.174533,
+        "roll": -0.174533,
+        "scale": 6.0,
+        "object": {
+          "type": "primitive",
+          "primitive": "cube"
+        }
+      }
+    },
+    {
+      "material": "green",
+      "object": {
+        "type": "transform",
+        "x": 3.0,
+        "y": 0.0,
+        "z": 6.0,
+        "pitch": 0.174533,
+        "yaw": 0.174533,
+        "roll": 0.174533,
+        "scale": 2.0,
+        "object": {
+          "type": "primitive",
+          "primitive": "cylinder"
+        }
+      }
+    }
+  ]
+}

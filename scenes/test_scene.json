@@ -2,19 +2,14 @@
     "camera": {},
     "materials": {
         "metal": {
-            "diffuse": {
-                "r": 1.0,
-                "g": 1.0,
-                "b": 1.0
-            },
+            "diffuse": "white",
             "reflectivity": 0.8
         },
         "red": {
-            "diffuse": {
-                "r": 0.9,
-                "g": 0.1,
-                "b": 0.1
-            }
+            "diffuse": "tomato"
+        },
+        "foobar": {
+            "diffuse": "rgb(200, 10, 10)"
         }
     },
     "contents": [
@@ -22,7 +17,7 @@
             "material": "metal",
             "object": {
                 "type": "transform",
-                "y": -3.0,
+                "y": -2.0,
                 "roll": 0.3,
                 "object": {
                     "type": "primitive",

@@ -102,7 +102,6 @@ fn raymarch(scene: Scene, start: zlm.Vec3, direction: zlm.Vec3, recursion: usize
             const mat = scene.materials[obj.material_id];
 
             const norm_vec = normal(obj.*, ray);
-            const reflection = reflect(direction.normalize(), norm_vec);
 
             var diffuse = if (mat.diffuse2) |pattern| blk: {
                 const sum = math.floor(ray.x * 3) + math.floor(ray.y * 5) + math.floor(ray.z * 3);
@@ -128,6 +127,7 @@ fn raymarch(scene: Scene, start: zlm.Vec3, direction: zlm.Vec3, recursion: usize
             if (mat.reflectivity == 0.0 or recursion == 0)
                 break diffuse;
 
+            const reflection = reflect(direction.normalize(), norm_vec);
             march(&ray, reflection, settings.hit_distance * 1.1);
             const refl_color = raymarch(scene, ray, reflection, recursion - 1);
 
@@ -135,7 +135,7 @@ fn raymarch(scene: Scene, start: zlm.Vec3, direction: zlm.Vec3, recursion: usize
         }
         march(&ray, direction, distance - (settings.hit_distance * 0.9));
     } else
-    // TODO: return skybox color instead
+    // TODO: return skybox color instead or default color
     Color{
         .r = 0,
         .g = 0,

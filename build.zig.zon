@@ -40,6 +40,10 @@
             .url = "git+https://github.com/zigimg/zigimg.git#4cab5a17d4c76584723576fcc11497293c25d092",
             .hash = "zigimg-0.1.0-8_eo2sywFwArMrr5UlqjhhAMbRtpmC4mL5KbBmjrxFba",
         },
+        .csscolorparser = .{
+            .url = "git+https://github.com/sorairolake/csscolorparser-zig.git#193c02d631a86cd9a1138111dc923080ede4693d",
+            .hash = "csscolorparser-0.2.0-RNqxK_M2AQCc7rYPftn30U2EgV3q5wsnsj1Y5FdRa4WZ",
+        },
     },
     .paths = .{
         "build.zig",

@@ -7,6 +7,7 @@ const Renderable = @import("Renderable.zig");
 const Scene = @import("Scene.zig");
 const Color = @import("color.zig").Color;
 const primitives = @import("primitives.zig");
+const csscolorparser = @import("csscolorparser");
 
 pub fn loadScene(alloc: std.mem.Allocator, io: std.Io, path: []const u8) !Scene {
     const cwd = std.Io.Dir.cwd();
@@ -146,38 +147,20 @@ fn readMaterial(value: *std.json.Value) !Material {
 }
 
 fn readColor(value: *const std.json.Value) !Color {
-    if (value.* != .object)
+    if (value.* != .string)
         return error.BadColorJson;
 
-    var ret: Color = .{};
+    const color = csscolorparser.Color(f32).parse(value.string) catch |e| {
+        std.debug.print("Error {} while parsing color \"{s}\".\n", .{ e, value.string });
+        return error.BadColorJson;
+    };
 
-    const col_def = &value.object;
-
-    if (col_def.get("r")) |r| {
-        if (r != .float)
-            return error.BadColorJson;
-        ret.r = @floatCast(r.float);
-    }
-
-    if (col_def.get("g")) |g| {
-        if (g != .float)
-            return error.BadColorJson;
-        ret.g = @floatCast(g.float);
-    }
-
-    if (col_def.get("b")) |b| {
-        if (b != .float)
-            return error.BadColorJson;
-        ret.b = @floatCast(b.float);
-    }
-
-    if (col_def.get("a")) |a| {
-        if (a != .float)
-            return error.BadColorJson;
-        ret.a = @floatCast(a.float);
-    }
-
-    return ret;
+    return .{
+        .a = color.alpha,
+        .r = color.red,
+        .g = color.green,
+        .b = color.blue,
+    };
 }
 
 // TODO: avoid anyerror, define set

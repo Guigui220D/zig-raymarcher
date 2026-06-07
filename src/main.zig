@@ -14,11 +14,16 @@ pub fn main(init: std.process.Init) !void {
     const alloc = init.gpa;
     const io = init.io;
 
+    var scene_path: []const u8 = "scenes/default_scene.json";
+
     { // Check arguments
         var it = init.minimal.args.iterate();
         while (it.next()) |arg| {
-            if (std.ascii.eqlIgnoreCase(arg, "preview"))
+            if (std.ascii.eqlIgnoreCase(arg, "preview")) {
                 raymarcher.settings.preview = true;
+            } else {
+                scene_path = arg;
+            }
         }
     }
 
@@ -29,7 +34,7 @@ pub fn main(init: std.process.Init) !void {
 
     std.debug.print("Preparing the scene...\n", .{});
 
-    const scene: Scene = try scene_loader.loadScene(alloc, io, "scenes/test_scene.json");
+    const scene: Scene = try scene_loader.loadScene(alloc, io, scene_path);
     defer scene.deinit();
 
     // What should be in the scene file: everything describing geometry
