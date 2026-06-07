@@ -4,7 +4,7 @@ const math = std.math;
 
 pub const PrimitiveFn = *const fn (zlm.Vec3) f64;
 
-pub fn primitiveFromName(name: []const u8) PrimitiveFn {
+pub fn primitiveFromName(name: []const u8) !PrimitiveFn {
     // TODO: use comptime goodness
     if (std.ascii.eqlIgnoreCase("sphere", name))
         return sphere;
@@ -18,7 +18,7 @@ pub fn primitiveFromName(name: []const u8) PrimitiveFn {
         return testWall;
     if (std.ascii.eqlIgnoreCase("cylinder", name))
         return cylinder;
-    return none;
+    return error.UnknownPrimitiveName;
 }
 
 pub fn sphere(pos: zlm.Vec3) f64 {

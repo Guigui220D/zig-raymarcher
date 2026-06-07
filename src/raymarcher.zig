@@ -199,6 +199,7 @@ fn renderSlice(my_slice: usize) !void {
         actual_dir = actual_dir.add(current_camera.getY().scale(-direction.y));
         actual_dir = actual_dir.add(current_camera.getZ().scale(direction.z));
 
+        // TODO: the first distance from the camera is the same for every ray: optimize away the first closest search
         const col = raymarch(
             current_scene,
             current_camera.origin,

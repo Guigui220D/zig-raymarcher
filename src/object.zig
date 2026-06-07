@@ -67,64 +67,21 @@ pub const Object = union(ObjectTypes) {
         }
     }
 
-    pub fn initPrimitive(alloc: std.mem.Allocator, function: PrimitiveFn) !*Object {
-        const ptr = try alloc.create(Object);
-        errdefer alloc.destroy(ptr);
-        ptr.* = .{ .primitive = function };
-        return ptr;
-    }
-
-    pub fn initTransform(alloc: std.mem.Allocator, object: *Object, rotate: zlm.Vec3, scale: zlm.Vec3, translate: zlm.Vec3) !*Object {
-        const ptr = try alloc.create(Object);
-        errdefer alloc.destroy(ptr);
-        const cos = std.math.cos;
-        const sin = std.math.sin;
-        ptr.* = .{ .transform = .{
-            .o = object,
-            .rotate = rotate,
-            .scale = scale,
-            .translate = translate,
-            ._xsincos = .{ .x = sin(rotate.x), .y = cos(rotate.x) },
-            ._ysincos = .{ .x = sin(rotate.y), .y = cos(rotate.y) },
-            ._zsincos = .{ .x = sin(rotate.z), .y = cos(rotate.z) },
-        } };
-        return ptr;
-    }
-
-    pub fn initCSG(alloc: std.mem.Allocator, obj_a: *Object, obj_b: *Object, csg: CSGType) !*Object {
-        const ptr = try alloc.create(Object);
-        errdefer alloc.destroy(ptr);
-        ptr.* = .{ .csg = .{ .a = obj_a, .b = obj_b, .mode = csg } };
-        return ptr;
-    }
-
-    pub fn initRepeat(alloc: std.mem.Allocator, object: *Object, axis: u3, modulo: f64) !*Object {
-        const ptr = try alloc.create(Object);
-        errdefer alloc.destroy(ptr);
-        ptr.* = .{ .repeat = .{ .o = object, .axis = axis, .modulo = modulo } };
-        return ptr;
-    }
-
-    pub fn deinit(self: Object, alloc: std.mem.Allocator) void {
-        switch (self) {
-            .primitive => {},
-            .transform => |transform| {
-                transform.o.deinit();
-                alloc.destroy(transform.o);
+    pub fn bakeTransform(object: *Object, rotate: zlm.Vec3, scale: zlm.Vec3, translate: zlm.Vec3) Object {
+        return .{
+            .transform = .{
+                .o = object,
+                .rotate = rotate,
+                .scale = scale,
+                .translate = translate,
+                ._xsincos = .{ .x = @sin(rotate.x), .y = @cos(rotate.x) },
+                ._ysincos = .{ .x = @sin(rotate.y), .y = @cos(rotate.y) },
+                ._zsincos = .{ .x = @sin(rotate.z), .y = @cos(rotate.z) },
             },
-            .csg => |csg| {
-                csg.a.deinit();
-                csg.b.deinit();
-                alloc.destroy(csg.a);
-                alloc.destroy(csg.b);
-            },
-            .repeat => |repeat| {
-                repeat.o.deinit();
-                alloc.destroy(repeat.o);
-            },
-        }
+        };
     }
 
+    // TODO: find ways to reduce tree depth: always transform primitives, add parameters to primitives
     primitive: PrimitiveFn,
     transform: struct {
         o: *Object,

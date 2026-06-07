@@ -4,7 +4,7 @@ const img = @import("zigimg");
 const Canvas = @import("Canvas.zig");
 
 pub fn saveAs(alloc: std.mem.Allocator, io: std.Io, canvas: *Canvas, path: []const u8) !void {
-    std.debug.print("Saving...\n", .{});
+    // TODO: try to make that async
     var image = try img.Image.fromRawPixels(
         alloc,
         canvas.width,

@@ -20,16 +20,28 @@
     "contents": [
         {
             "material": "metal",
-            "primitive": "plane",
-            "y": -3.0,
-            "roll": 0.3
+            "object": {
+                "type": "transform",
+                "y": -3.0,
+                "roll": 0.3,
+                "object": {
+                    "type": "primitive",
+                    "primitive": "plane"
+                }
+            }
         },
         {
             "material": "red",
-            "primitive": "sphere",
-            "x": 1.0,
-            "y": 0.5,
-            "z": 7.0
+            "object": {
+                "type": "transform",
+                "x": 1.0,
+                "y": 0.5,
+                "z": 7.0,
+                "object": {
+                    "type": "primitive",
+                    "primitive": "sphere"
+                }
+            }
         }
     ]
 }
