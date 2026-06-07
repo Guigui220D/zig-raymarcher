@@ -1,0 +1,111 @@
+{
+    "camera": {},
+    "materials": {
+        "a": {
+            "diffuse": "blue",
+            "reflectivity": 0.0,
+            "smoothness": 0.0
+        },
+        "b": {
+            "diffuse": "blue",
+            "reflectivity": 1.0,
+            "smoothness": 0.0
+        },
+        "c": {
+            "diffuse": "blue",
+            "reflectivity": 0.0,
+            "smoothness": 1.0
+        },
+        "d": {
+            "diffuse": "blue",
+            "reflectivity": 1.0,
+            "smoothness": 1.0
+        },
+        "behind_cam": {
+            "diffuse": "red",
+            "diffuse2": "darkred"
+        },
+        "tiles": {
+            "diffuse": "lightseagreen",
+            "diffuse2": "lightsalmon"
+        }
+    },
+    "contents": [
+        {
+            "material": "a",
+            "object": {
+                "type": "transform",
+                "x": -1.5,
+                "y": -1.5,
+                "z": 6.0,
+                "object": {
+                    "type": "primitive",
+                    "primitive": "sphere"
+                }
+            }
+        },
+        {
+            "material": "b",
+            "object": {
+                "type": "transform",
+                "x": 1.5,
+                "y": -1.5,
+                "z": 6.0,
+                "object": {
+                    "type": "primitive",
+                    "primitive": "sphere"
+                }
+            }
+        },
+        {
+            "material": "c",
+            "object": {
+                "type": "transform",
+                "x": -1.5,
+                "y": 1.5,
+                "z": 6.0,
+                "object": {
+                    "type": "primitive",
+                    "primitive": "sphere"
+                }
+            }
+        },
+        {
+            "material": "d",
+            "object": {
+                "type": "transform",
+                "x": 1.5,
+                "y": 1.5,
+                "z": 6.0,
+                "object": {
+                    "type": "primitive",
+                    "primitive": "sphere"
+                }
+            }
+        },
+        {
+            "material": "behind_cam",
+            "object": {
+                "type": "transform",
+                "roll": -90.0,
+                "y": -2.0,
+                "object": {
+                    "type": "primitive",
+                    "primitive": "plane"
+                }
+            }
+        },
+        {
+            "material": "tiles",
+            "object": {
+                "type": "transform",
+                "roll": -90.0,
+                "y": 10.0,
+                "object": {
+                    "type": "primitive",
+                    "primitive": "plane"
+                }
+            }
+        }
+    ]
+}

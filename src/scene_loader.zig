@@ -8,6 +8,7 @@ const Renderable = @import("Renderable.zig");
 const Scene = @import("Scene.zig");
 const Color = @import("color.zig").Color;
 const primitives = @import("primitives.zig");
+const LightSource = @import("LightSource.zig");
 const csscolorparser = @import("csscolorparser");
 
 pub fn loadScene(alloc: std.mem.Allocator, io: std.Io, path: []const u8) !Scene {
@@ -73,7 +74,7 @@ pub fn loadScene(alloc: std.mem.Allocator, io: std.Io, path: []const u8) !Scene 
         .arena = arena,
         .materials = try mats.toOwnedSlice(arena_alloc),
         .objects = try objs.toOwnedSlice(arena_alloc),
-        .lights = &.{},
+        .lights = &[1]LightSource{.{}},
         .global_light = .{},
     };
 }
@@ -148,14 +149,22 @@ fn readMaterial(value: *std.json.Value) !Material {
     var new_mat = Material{};
     const mat_def = &value.object;
 
-    // Get color
+    // Get colors
     if (mat_def.get("diffuse")) |dif_entry| {
         new_mat.diffuse = try readColor(&dif_entry);
+    }
+    if (mat_def.get("diffuse2")) |dif_entry| {
+        new_mat.diffuse2 = try readColor(&dif_entry);
     }
     // Reflectivity
     if (mat_def.get("reflectivity")) |refl_entry| {
         const refl = refl_entry.float;
         new_mat.reflectivity = @floatCast(refl);
+    }
+    // Smoothness
+    if (mat_def.get("smoothness")) |smooth_entry| {
+        const smooth = smooth_entry.float;
+        new_mat.smoothness = @floatCast(smooth);
     }
     // TODO: diffuse2 or advanced textures
 

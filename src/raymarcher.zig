@@ -12,8 +12,7 @@ const csscolorparser = @import("csscolorparser");
 pub const DebugMode = enum {
     none,
     material_ids,
-    mat_reflectivity,
-    actual_reflectivity,
+    refl_factor,
     dot,
 };
 
@@ -21,6 +20,7 @@ pub const DebugMode = enum {
 pub const settings = struct {
     pub var hit_distance: f64 = 0.02;
     pub var max_steps: usize = 128;
+    pub var max_steps_getting_closer: usize = 2048;
     pub var max_reflections: usize = 6;
     pub var preview: bool = false;
     pub var debug_mode: DebugMode = .none;
@@ -101,8 +101,22 @@ fn raymarch(scene: Scene, start: zlm.Vec3, direction: zlm.Vec3, recursion: usize
 
     var ray = start;
 
-    return while (i < settings.max_steps) : (i += 1) {
+    var last_dist: f64 = 0.0;
+    return while (true) : (i += 1) {
         const distance = distanceToScene(scene.objects, ray);
+
+        if (i >= settings.max_steps) {
+            if (distance >= last_dist or i > settings.max_steps_getting_closer) {
+                break Color{
+                    // TODO: return skybox color instead or default color
+                    .r = 1.0,
+                    .g = 1.0,
+                    .b = 1.0,
+                };
+            }
+        }
+
+        last_dist = distance;
 
         if (distance <= 3 * settings.hit_distance)
             i = 0;
@@ -126,7 +140,7 @@ fn raymarch(scene: Scene, start: zlm.Vec3, direction: zlm.Vec3, recursion: usize
             const norm_vec = normal(obj.*, ray);
 
             var diffuse = if (mat.diffuse2) |pattern| blk: {
-                const sum = math.floor(ray.x * 3) + math.floor(ray.y * 5) + math.floor(ray.z * 3);
+                const sum = math.floor(ray.x * 2) + math.floor(ray.y * 2) + math.floor(ray.z * 2);
                 if (@mod(sum, 2) < 0.1) {
                     break :blk mat.diffuse;
                 }
@@ -146,7 +160,7 @@ fn raymarch(scene: Scene, start: zlm.Vec3, direction: zlm.Vec3, recursion: usize
 
             diffuse = diffuse.mul(light_sum);
 
-            if (recursion == 0)
+            if (recursion == 0 or (mat.smoothness == 0 and mat.reflectivity == 0 and settings.debug_mode == .none))
                 break diffuse;
 
             const reflection = reflect(direction.normalize(), norm_vec);
@@ -154,12 +168,9 @@ fn raymarch(scene: Scene, start: zlm.Vec3, direction: zlm.Vec3, recursion: usize
             const refl_color = raymarch(scene, ray, reflection, recursion - 1);
 
             const dot: f32 = @floatCast(@abs(norm_vec.normalize().dot(reflection)));
-            const refl = 1 - dot * (1 - mat.reflectivity);
+            const refl = mat.smoothness + (mat.reflectivity - mat.smoothness) * dot;
 
-            if (settings.debug_mode == .mat_reflectivity)
-                break Color{ .r = mat.reflectivity, .g = mat.reflectivity, .b = mat.reflectivity };
-
-            if (settings.debug_mode == .actual_reflectivity)
+            if (settings.debug_mode == .refl_factor)
                 break Color{ .r = refl, .g = refl, .b = refl };
 
             if (settings.debug_mode == .dot)
@@ -168,11 +179,6 @@ fn raymarch(scene: Scene, start: zlm.Vec3, direction: zlm.Vec3, recursion: usize
             break Color.mix(refl_color, diffuse, refl);
         }
         march(&ray, direction, distance - (settings.hit_distance * 0.9));
-    } else Color{
-        // TODO: return skybox color instead or default color
-        .r = 1.0,
-        .g = 1.0,
-        .b = 1.0,
     };
 }
 
@@ -184,6 +190,7 @@ pub fn render(_: std.mem.Allocator, io: std.Io, scene: Scene, canvas: Canvas, ca
         std.debug.print("/!\\ Running in preview mode!\n", .{});
         settings.max_steps /= 2;
         settings.max_reflections /= 2;
+        settings.max_steps_getting_closer /= 2;
         settings.hit_distance *= 2;
     }
 
