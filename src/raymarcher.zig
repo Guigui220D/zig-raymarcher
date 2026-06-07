@@ -7,6 +7,15 @@ const Renderable = @import("Renderable.zig");
 const Color = @import("color.zig").Color;
 const Canvas = @import("Canvas.zig");
 const Camera = @import("Camera.zig");
+const csscolorparser = @import("csscolorparser");
+
+pub const DebugMode = enum {
+    none,
+    material_ids,
+    mat_reflectivity,
+    actual_reflectivity,
+    dot,
+};
 
 // TODO: make this an object and add current_settings and default_settings
 pub const settings = struct {
@@ -14,6 +23,7 @@ pub const settings = struct {
     pub var max_steps: usize = 128;
     pub var max_reflections: usize = 6;
     pub var preview: bool = false;
+    pub var debug_mode: DebugMode = .none;
 };
 
 var current_scene: Scene = undefined;
@@ -99,6 +109,18 @@ fn raymarch(scene: Scene, start: zlm.Vec3, direction: zlm.Vec3, recursion: usize
 
         if (distance <= settings.hit_distance) {
             const obj = closestObject(scene.objects, ray).?;
+
+            if (settings.debug_mode == .material_ids) {
+                const hue = @as(f32, @floatFromInt(obj.material_id)) / @as(f32, @floatFromInt(scene.materials.len));
+                const col = csscolorparser.Color(f32).fromHsl(hue * 360, 1.0, 0.5, 1.0);
+                break Color{
+                    .a = col.alpha,
+                    .r = col.red,
+                    .g = col.green,
+                    .b = col.blue,
+                };
+            }
+
             const mat = scene.materials[obj.material_id];
 
             const norm_vec = normal(obj.*, ray);
@@ -124,22 +146,33 @@ fn raymarch(scene: Scene, start: zlm.Vec3, direction: zlm.Vec3, recursion: usize
 
             diffuse = diffuse.mul(light_sum);
 
-            if (mat.reflectivity == 0.0 or recursion == 0)
+            if (recursion == 0)
                 break diffuse;
 
             const reflection = reflect(direction.normalize(), norm_vec);
             march(&ray, reflection, settings.hit_distance * 1.1);
             const refl_color = raymarch(scene, ray, reflection, recursion - 1);
 
-            break Color.mix(refl_color, diffuse, mat.reflectivity * @as(f32, @floatCast(norm_vec.normalize().dot(reflection))));
+            const dot: f32 = @floatCast(@abs(norm_vec.normalize().dot(reflection)));
+            const refl = 1 - dot * (1 - mat.reflectivity);
+
+            if (settings.debug_mode == .mat_reflectivity)
+                break Color{ .r = mat.reflectivity, .g = mat.reflectivity, .b = mat.reflectivity };
+
+            if (settings.debug_mode == .actual_reflectivity)
+                break Color{ .r = refl, .g = refl, .b = refl };
+
+            if (settings.debug_mode == .dot)
+                break Color{ .r = dot, .g = dot, .b = dot };
+
+            break Color.mix(refl_color, diffuse, refl);
         }
         march(&ray, direction, distance - (settings.hit_distance * 0.9));
-    } else
-    // TODO: return skybox color instead or default color
-    Color{
-        .r = 0,
-        .g = 0,
-        .b = 0,
+    } else Color{
+        // TODO: return skybox color instead or default color
+        .r = 1.0,
+        .g = 1.0,
+        .b = 1.0,
     };
 }
 

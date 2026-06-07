@@ -17,8 +17,13 @@ pub fn main(init: std.process.Init) !void {
     var scene_path: []const u8 = "scenes/default_scene.json";
 
     { // Check arguments
+        var first = true;
         var it = init.minimal.args.iterate();
         while (it.next()) |arg| {
+            if (first) {
+                first = false;
+                continue;
+            }
             if (std.ascii.eqlIgnoreCase(arg, "preview")) {
                 raymarcher.settings.preview = true;
             } else {
@@ -26,6 +31,8 @@ pub fn main(init: std.process.Init) !void {
             }
         }
     }
+
+    std.debug.print("Scene path: {s}\n", .{scene_path});
 
     { // Try to create render folder
         const cwd = std.Io.Dir.cwd();

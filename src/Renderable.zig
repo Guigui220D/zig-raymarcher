@@ -4,6 +4,7 @@ const Material = @import("Material.zig");
 const Renderable = @This();
 
 material_id: usize,
-object: Object
+object: Object,
+enabled: bool,
 
 //Guillaume Derex 2026

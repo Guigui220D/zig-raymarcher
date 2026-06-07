@@ -3,6 +3,7 @@ const zlm = @import("zlm").as(f64);
 
 const Material = @import("Material.zig");
 const Object = @import("object.zig").Object;
+const CSGType = @import("object.zig").CSGType;
 const Renderable = @import("Renderable.zig");
 const Scene = @import("Scene.zig");
 const Color = @import("color.zig").Color;
@@ -54,14 +55,15 @@ pub fn loadScene(alloc: std.mem.Allocator, io: std.Io, path: []const u8) !Scene 
 
     // Parse objects
     var objs: std.ArrayList(Renderable) = .empty;
-    errdefer mats.deinit(arena_alloc);
+    errdefer objs.deinit(arena_alloc);
 
     const contents = json.value.object.get("contents").?;
     const obj_items = contents.array.items;
     for (obj_items) |obj_entry| {
         // Read renderable
         const new_obj = try readRenderable(arena_alloc, &obj_entry, &mat_names);
-        try objs.append(arena_alloc, new_obj);
+        if (new_obj.enabled)
+            try objs.append(arena_alloc, new_obj);
     }
 
     const camera = json.value.object.get("camera").?;
@@ -94,11 +96,19 @@ fn readRenderable(alloc: std.mem.Allocator, value: *const std.json.Value, materi
     // Get object
     const obj_def = ren_def.get("object") orelse return error.BadRenderableJson;
     const obj = try readObject(alloc, &obj_def);
-    errdefer obj.deinit(alloc);
+
+    // Check enabled
+    var enabled = true;
+    if (ren_def.get("enabled")) |en| {
+        if (en != .bool)
+            return error.BadRenderableJson;
+        enabled = en.bool;
+    }
 
     return .{
         .material_id = mat_id,
         .object = obj,
+        .enabled = enabled,
     };
 }
 
@@ -121,6 +131,12 @@ fn readObject(alloc: std.mem.Allocator, value: *const std.json.Value) !Object {
 
     if (std.mem.eql(u8, "primitive", type_name.string))
         ret = try readPrimitiveObject(alloc, obj_def);
+
+    if (std.mem.eql(u8, "csg", type_name.string))
+        ret = try readCSGObject(alloc, obj_def);
+
+    if (std.mem.eql(u8, "repeat", type_name.string))
+        ret = try readRepeatObject(alloc, obj_def);
 
     return ret orelse error.BadObjectJson;
 }
@@ -166,14 +182,13 @@ fn readColor(value: *const std.json.Value) !Color {
 // TODO: avoid anyerror, define set
 fn readTransformObject(alloc: std.mem.Allocator, object: *const std.json.ObjectMap) anyerror!Object {
     //std.debug.print("Reading transform object...\n", .{});
-    // Get object
-    const obj_def = object.get("object") orelse return error.BadTransformJson;
-    const obj = try readObject(alloc, &obj_def);
 
     // Default values
     var rotate: zlm.Vec3 = .zero;
     var scale: zlm.Vec3 = .one;
     var translate: zlm.Vec3 = .zero;
+
+    // TODO: support integers
 
     // Translation
     if (object.get("x")) |x| {
@@ -196,17 +211,17 @@ fn readTransformObject(alloc: std.mem.Allocator, object: *const std.json.ObjectM
     if (object.get("roll")) |roll| {
         if (roll != .float)
             return error.BadTransformJson;
-        rotate.x = roll.float;
+        rotate.x = zlm.toRadians(roll.float);
     }
     if (object.get("yaw")) |yaw| {
         if (yaw != .float)
             return error.BadTransformJson;
-        rotate.y = yaw.float;
+        rotate.y = zlm.toRadians(yaw.float);
     }
     if (object.get("pitch")) |pitch| {
         if (pitch != .float)
             return error.BadTransformJson;
-        rotate.z = pitch.float;
+        rotate.z = zlm.toRadians(pitch.float);
     }
 
     // Scale
@@ -233,9 +248,14 @@ fn readTransformObject(alloc: std.mem.Allocator, object: *const std.json.ObjectM
         scale.z = z.float;
     }
 
+    // Get object
+    const obj_def = object.get("object") orelse return error.BadTransformJson;
+    const obj = try readObject(alloc, &obj_def);
+
     const obj_copy = try alloc.create(Object);
     errdefer alloc.destroy(obj_copy);
     obj_copy.* = obj;
+
     return Object.bakeTransform(obj_copy, rotate, scale, translate);
 }
 
@@ -250,6 +270,87 @@ fn readPrimitiveObject(_: std.mem.Allocator, object: *const std.json.ObjectMap) 
     const primitive = try primitives.primitiveFromName(type_name.string);
     return .{
         .primitive = primitive,
+    };
+}
+
+fn readCSGObject(alloc: std.mem.Allocator, object: *const std.json.ObjectMap) anyerror!Object {
+    //std.debug.print("Reading CSG object...\n", .{});
+    // Get type
+    const type_name = object.get("csg") orelse return error.BadCsgJson;
+    if (type_name != .string)
+        return error.BadCsgJson;
+
+    // Get CSG type
+    var csg_type: ?CSGType = null;
+
+    if (std.ascii.eqlIgnoreCase("union", type_name.string))
+        csg_type = .unionSDF;
+    if (std.ascii.eqlIgnoreCase("intersection", type_name.string))
+        csg_type = .intersectionSDF;
+    if (std.ascii.eqlIgnoreCase("difference", type_name.string))
+        csg_type = .differenceSDF;
+
+    if (csg_type == null)
+        return error.BadCsgJson;
+
+    // Get objects
+    const obj_def1 = object.get("object1") orelse return error.BadCsgJson;
+    const obj1 = try readObject(alloc, &obj_def1);
+
+    const obj1_copy = try alloc.create(Object);
+    errdefer alloc.destroy(obj1_copy);
+    obj1_copy.* = obj1;
+
+    const obj_def2 = object.get("object2") orelse return error.BadCsgJson;
+    const obj2 = try readObject(alloc, &obj_def2);
+
+    const obj2_copy = try alloc.create(Object);
+    errdefer alloc.destroy(obj2_copy);
+    obj2_copy.* = obj2;
+
+    return .{
+        .csg = .{
+            .mode = csg_type.?,
+            .a = obj1_copy,
+            .b = obj2_copy,
+        },
+    };
+}
+
+fn readRepeatObject(alloc: std.mem.Allocator, object: *const std.json.ObjectMap) anyerror!Object {
+    //std.debug.print("Reading repeat object...\n", .{});
+    // Get axis
+    const axis = object.get("axis") orelse return error.BadRepeatJson;
+    if (axis != .string)
+        return error.BadRepeatJson;
+
+    var axis_flags: u3 = 0;
+    for (axis.string) |ax| {
+        axis_flags |= switch (ax) {
+            'x' => 0b100,
+            'y' => 0b010,
+            'z' => 0b001,
+            else => return error.BadRepeatJson,
+        };
+    }
+
+    // Get period
+    const period = object.get("period") orelse return error.BadRepeatJson;
+
+    // Get object
+    const obj_def = object.get("object") orelse return error.BadTransformJson;
+    const obj = try readObject(alloc, &obj_def);
+
+    const obj_copy = try alloc.create(Object);
+    errdefer alloc.destroy(obj_copy);
+    obj_copy.* = obj;
+
+    return Object{
+        .repeat = .{
+            .axis = axis_flags,
+            .modulo = period.float,
+            .o = obj_copy,
+        },
     };
 }
 
