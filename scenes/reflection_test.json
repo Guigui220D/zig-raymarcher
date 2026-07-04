@@ -84,6 +84,7 @@
             }
         },
         {
+            "enabled": false,
             "material": "behind_cam",
             "object": {
                 "type": "transform",
@@ -96,6 +97,7 @@
             }
         },
         {
+            "enabled": false,
             "material": "tiles",
             "object": {
                 "type": "transform",

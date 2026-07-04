@@ -4,6 +4,7 @@ origin: zlm.Vec3 = zlm.Vec3.zero,
 direction: zlm.Vec3 = zlm.vec3(0, 0, 1),
 fov_modifier: f64 = 1,
 
+// TODO: fix those for z = 0
 // Those are here to create a vector base for the camera POV
 pub fn getZ(self: @This()) zlm.Vec3 {
     return self.direction.normalize();

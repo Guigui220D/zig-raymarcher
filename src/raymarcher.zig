@@ -8,6 +8,7 @@ const Color = @import("color.zig").Color;
 const Canvas = @import("Canvas.zig");
 const Camera = @import("Camera.zig");
 const csscolorparser = @import("csscolorparser");
+const Skybox = @import("Skybox.zig");
 
 pub const DebugMode = enum {
     none,
@@ -29,6 +30,7 @@ pub const settings = struct {
 var current_scene: Scene = undefined;
 var current_canvas: Canvas = undefined;
 var current_camera: Camera = .{};
+var current_skybox: *const Skybox = undefined;
 var fwidth: f64 = undefined;
 var fheight: f64 = undefined;
 var next_slice: usize = 0;
@@ -96,7 +98,7 @@ fn raymarchToPoint(scene: []const Renderable, goal: zlm.Vec3, start: zlm.Vec3) b
     }
 }
 
-fn raymarch(scene: Scene, start: zlm.Vec3, direction: zlm.Vec3, recursion: usize) Color {
+fn raymarch(scene: Scene, start: zlm.Vec3, direction: zlm.Vec3, recursion: usize, skybox: *const Skybox) Color {
     var i: usize = 0;
 
     var ray = start;
@@ -107,12 +109,7 @@ fn raymarch(scene: Scene, start: zlm.Vec3, direction: zlm.Vec3, recursion: usize
 
         if (i >= settings.max_steps) {
             if (distance >= last_dist or i > settings.max_steps_getting_closer) {
-                break Color{
-                    // TODO: return skybox color instead or default color
-                    .r = 1.0,
-                    .g = 1.0,
-                    .b = 1.0,
-                };
+                break skybox.fetchColor(direction);
             }
         }
 
@@ -165,7 +162,7 @@ fn raymarch(scene: Scene, start: zlm.Vec3, direction: zlm.Vec3, recursion: usize
 
             const reflection = reflect(direction.normalize(), norm_vec);
             march(&ray, reflection, settings.hit_distance * 1.1);
-            const refl_color = raymarch(scene, ray, reflection, recursion - 1);
+            const refl_color = raymarch(scene, ray, reflection, recursion - 1, skybox);
 
             const dot: f32 = @floatCast(@abs(norm_vec.normalize().dot(reflection)));
             const refl = mat.smoothness + (mat.reflectivity - mat.smoothness) * dot;
@@ -182,7 +179,7 @@ fn raymarch(scene: Scene, start: zlm.Vec3, direction: zlm.Vec3, recursion: usize
     };
 }
 
-pub fn render(_: std.mem.Allocator, io: std.Io, scene: Scene, canvas: Canvas, camera: Camera) !void {
+pub fn render(_: std.mem.Allocator, io: std.Io, scene: Scene, canvas: Canvas, camera: Camera, skybox: *const Skybox) !void {
     if (canvas.width == 0 or canvas.height == 0)
         return error.canvasWrongFormat;
 
@@ -197,6 +194,7 @@ pub fn render(_: std.mem.Allocator, io: std.Io, scene: Scene, canvas: Canvas, ca
     current_scene = scene;
     current_canvas = canvas;
     current_camera = camera;
+    current_skybox = skybox;
 
     fwidth = @floatFromInt(canvas.width);
     fheight = @floatFromInt(canvas.height);
@@ -232,7 +230,7 @@ fn renderSlice(my_slice: usize) !void {
         const x_f: f64 = @floatFromInt(x);
         const rx: f64 = (x_f - fwidth / 2.0) / fwidth;
 
-        const direction = zlm.vec3(rx, ry, 1);
+        const direction = zlm.vec3(rx, ry, 1 / current_camera.fov_modifier);
         var actual_dir = zlm.Vec3.zero;
         actual_dir = actual_dir.add(current_camera.getX().scale(direction.x));
         actual_dir = actual_dir.add(current_camera.getY().scale(-direction.y));
@@ -244,6 +242,7 @@ fn renderSlice(my_slice: usize) !void {
             current_camera.origin,
             actual_dir.normalize(),
             settings.max_reflections,
+            current_skybox,
         );
         last_col = col;
         current_canvas.data[begin + x] = col;

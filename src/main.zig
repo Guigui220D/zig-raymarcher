@@ -9,6 +9,9 @@ const Canvas = @import("Canvas.zig");
 const image_save = @import("image_save.zig");
 const Camera = @import("Camera.zig");
 const Scene = @import("Scene.zig");
+const Skybox = @import("Skybox.zig");
+
+// TODO: use logger
 
 pub fn main(init: std.process.Init) !void {
     const alloc = init.gpa;
@@ -43,6 +46,9 @@ pub fn main(init: std.process.Init) !void {
 
     const scene: Scene = try scene_loader.loadScene(alloc, io, scene_path);
     defer scene.deinit();
+
+    var skybox: Skybox = try .init(alloc, io, "ressources/Yokohama3");
+    defer skybox.deinit(alloc);
 
     // What should be in the scene file: everything describing geometry
     //  primitives, combinations, materials
@@ -79,7 +85,7 @@ pub fn main(init: std.process.Init) !void {
 
         std.debug.print("Rendering frame #{:0>4}...\n", .{frame});
 
-        try raymarcher.render(alloc, io, scene, canvas, .{});
+        try raymarcher.render(alloc, io, scene, canvas, .{}, &skybox);
 
         //std.debug.print("Adjusting colors...\n", .{});
         canvas.adjustColors();
