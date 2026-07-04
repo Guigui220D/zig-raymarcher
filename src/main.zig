@@ -47,7 +47,8 @@ pub fn main(init: std.process.Init) !void {
     const scene: Scene = try scene_loader.loadScene(alloc, io, scene_path);
     defer scene.deinit();
 
-    var skybox: Skybox = try .init(alloc, io, "ressources/Yokohama3");
+    // TODO: make configurable (no hardcode)
+    var skybox: Skybox = try .init(alloc, io, "ressources/Yokohama2");
     defer skybox.deinit(alloc);
 
     // What should be in the scene file: everything describing geometry
@@ -57,8 +58,6 @@ pub fn main(init: std.process.Init) !void {
     // What should be as args: things regarding performance, output place, and overrides
     //  threads count, override iterations
 
-    // TODO: skyboxes
-    // TODO: png output
     // TODO: better prints (not debug)
     // TODO: matrix transforms
     var pathbuf: [512]u8 = undefined;

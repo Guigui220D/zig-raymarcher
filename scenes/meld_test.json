@@ -1,0 +1,44 @@
+{
+    "camera": {},
+    "materials": {
+        "mat": {
+            "diffuse": "orange",
+            "reflectivity": 1.0,
+            "smoothness": 0.0
+        }
+    },
+    "contents": [
+        {
+            "material": "mat",
+            "object": {
+            "type": "meld",
+                "factor": 1,
+                "object1": {
+                    "type": "transform",
+                    "x": -1.5,
+                    "z": 6.0,
+                    "object": {
+                        "type": "transform",
+                        "pitch": 45,
+                        "yaw": 45,
+                        "roll": 45,
+                        "scale": 0.6,
+                        "object": {
+                            "type": "primitive",
+                            "primitive": "cube"
+                        }
+                    }
+                },
+                "object2": {
+                    "type": "transform",
+                    "x": 1.5,
+                    "z": 6.0,
+                    "object": {
+                        "type": "primitive",
+                        "primitive": "sphere"
+                    }
+                }
+            }
+        }
+    ]
+}

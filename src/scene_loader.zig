@@ -139,6 +139,9 @@ fn readObject(alloc: std.mem.Allocator, value: *const std.json.Value) !Object {
     if (std.mem.eql(u8, "repeat", type_name.string))
         ret = try readRepeatObject(alloc, obj_def);
 
+    if (std.mem.eql(u8, "meld", type_name.string))
+        ret = try readMeldObject(alloc, obj_def);
+
     return ret orelse error.BadObjectJson;
 }
 
@@ -327,6 +330,37 @@ fn readRepeatObject(alloc: std.mem.Allocator, object: *const std.json.ObjectMap)
             .axis = axis_flags,
             .modulo = period_val,
             .o = obj_copy,
+        },
+    };
+}
+
+fn readMeldObject(alloc: std.mem.Allocator, object: *const std.json.ObjectMap) anyerror!Object {
+    //std.debug.print("Reading meld object...\n", .{});
+
+    // Get objects
+    const obj_def1 = object.get("object1") orelse return error.BadMeldJson;
+    const obj1 = try readObject(alloc, &obj_def1);
+
+    const obj1_copy = try alloc.create(Object);
+    errdefer alloc.destroy(obj1_copy);
+    obj1_copy.* = obj1;
+
+    const obj_def2 = object.get("object2") orelse return error.BadMeldJson;
+    const obj2 = try readObject(alloc, &obj_def2);
+
+    const obj2_copy = try alloc.create(Object);
+    errdefer alloc.destroy(obj2_copy);
+    obj2_copy.* = obj2;
+
+    // Get meld factor
+    const meld_fac = object.get("factor") orelse return error.BadMeldJson;
+    const meld_factor = try readScalar(f64, &meld_fac);
+
+    return .{
+        .meld = .{
+            .a = obj1_copy,
+            .b = obj2_copy,
+            .meld_factor = meld_factor,
         },
     };
 }
