@@ -101,6 +101,8 @@ pub fn main(init: std.process.Init) !void {
 
         std.debug.print("Rendering frame #{:0>4}...\n", .{frame});
 
+        // Warmup run
+        try raymarcher.render(alloc, io, scene, canvas, .{}, &skybox);
         try raymarcher.render(alloc, io, scene, canvas, .{}, &skybox);
 
         //std.debug.print("Adjusting colors...\n", .{});
