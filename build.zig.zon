@@ -44,6 +44,10 @@
             .url = "git+https://github.com/sorairolake/csscolorparser-zig.git#193c02d631a86cd9a1138111dc923080ede4693d",
             .hash = "csscolorparser-0.2.0-RNqxK_M2AQCc7rYPftn30U2EgV3q5wsnsj1Y5FdRa4WZ",
         },
+        .tracy = .{
+            .url = "https://codeberg.org/Games-by-Mason/tracy_zig/archive/main.tar.gz",
+            .hash = "tracy-1.0.0+0.13.1-R7l8BUhQAQCLinsSpkKfLYpdgnI8aVTJG3v0XLBkJE5T",
+        },
     },
     .paths = .{
         "build.zig",

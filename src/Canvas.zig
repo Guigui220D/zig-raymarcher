@@ -44,6 +44,8 @@ fn minMoreThan0(vals: []const f32, max: f32) f32 {
         if (v < best and v > (max / 255))
             best = v;
     }
+    if (best == std.math.floatMax(f32))
+        return 0;
     return best;
 }
 

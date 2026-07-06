@@ -10,6 +10,23 @@ const image_save = @import("image_save.zig");
 const Camera = @import("Camera.zig");
 const Scene = @import("Scene.zig");
 const Skybox = @import("Skybox.zig");
+const settings = @import("settings.zig");
+
+pub const tracy_impl = @import("tracy_impl");
+
+pub const tracy = @import("tracy");
+pub const tracy_options: tracy.Options = .{
+    .on_demand = false,
+    .no_broadcast = false,
+    .only_localhost = false,
+    .only_ipv4 = false,
+    .delayed_init = false,
+    .manual_lifetime = false,
+    .verbose = false,
+    .data_port = null,
+    .broadcast_port = null,
+    .default_callstack_depth = 0,
+};
 
 // TODO: use logger
 
@@ -28,7 +45,7 @@ pub fn main(init: std.process.Init) !void {
                 continue;
             }
             if (std.ascii.eqlIgnoreCase(arg, "preview")) {
-                raymarcher.settings.preview = true;
+                settings.preview = true;
             } else {
                 scene_path = arg;
             }
