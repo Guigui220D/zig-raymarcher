@@ -13,3 +13,5 @@ pub var max_steps_getting_closer: usize = 2048;
 pub var max_reflections: usize = 6;
 pub var preview: bool = false;
 pub var debug_mode: DebugMode = .none;
+pub var benchmark: bool = false;
+pub var benchmark_it: usize = 5;

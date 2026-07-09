@@ -46,6 +46,8 @@ pub fn main(init: std.process.Init) !void {
             }
             if (std.ascii.eqlIgnoreCase(arg, "preview")) {
                 settings.preview = true;
+            } else if (std.ascii.eqlIgnoreCase(arg, "benchmark")) {
+                settings.benchmark = true;
             } else {
                 scene_path = arg;
             }
@@ -77,43 +79,44 @@ pub fn main(init: std.process.Init) !void {
 
     // TODO: better prints (not debug)
     // TODO: matrix transforms
-    var pathbuf: [512]u8 = undefined;
-
-    var canvas = try Canvas.init(alloc, 1000, 1000);
-    defer canvas.deinit();
 
     var cam = Camera{};
-    const point_a = zlm.Vec3.zero;
-    const point_b = zlm.vec3(-4, 1, 3);
 
     //var timer = try std.time.Timer.start();
+    const campos = zlm.Vec3.zero;
+    const camdir = zlm.vec3(0, -0.5, 1).sub(campos);
+    cam.origin = campos;
+    cam.direction = camdir;
 
-    var frame: usize = 0;
-    const n = 1;
-    while (frame < n) : (frame += 1) {
-        const lerp = @as(f32, @floatFromInt(frame)) / @as(f32, @floatFromInt(n));
-        const campos = zlm.Vec3.lerp(point_a, point_b, lerp);
-        const camdir = zlm.vec3(0, -0.5, 1).sub(campos);
-        cam.origin = campos;
-        cam.direction = camdir;
+    std.debug.print("Rendering frame...\n", .{});
 
-        const path = try std.fmt.bufPrint(&pathbuf, "render/frame{:0>4}.jpg", .{frame});
+    if (settings.benchmark) {
+        var canvas = try Canvas.init(alloc, 200, 200);
+        defer canvas.deinit();
 
-        std.debug.print("Rendering frame #{:0>4}...\n", .{frame});
-
+        std.debug.print("Benchmarking!\nWarmup...\n", .{});
         // Warmup run
-        try raymarcher.render(alloc, io, scene, canvas, .{}, &skybox);
-        try raymarcher.render(alloc, io, scene, canvas, .{}, &skybox);
+        _ = try raymarcher.render(alloc, io, scene, canvas, .{}, &skybox);
+
+        std.debug.print("Doing {} runs...\n", .{settings.benchmark_it});
+        var sum: i64 = 0;
+        for (0..settings.benchmark_it) |_| {
+            sum += try raymarcher.render(alloc, io, scene, canvas, .{}, &skybox);
+        }
+        std.debug.print("Done! Avg {} ms per run\n", .{@divFloor(sum, @as(i64, @intCast(settings.benchmark_it)) * 1000)});
+    } else {
+        var canvas = try Canvas.init(alloc, 1000, 1000);
+        defer canvas.deinit();
+
+        _ = try raymarcher.render(alloc, io, scene, canvas, .{}, &skybox);
 
         //std.debug.print("Adjusting colors...\n", .{});
         canvas.adjustColors();
 
         std.debug.print("Saving...\n", .{});
-        try image_save.saveAs(alloc, io, &canvas, path);
-        std.debug.print("Frame saved to {s}.\n", .{path});
+        try image_save.saveAs(alloc, io, &canvas, "render/frame.jpg");
+        std.debug.print("Frame saved to render/frame.jpg.\n", .{});
     }
-    //std.debug.print("Finished all frames. It took {}s.\n", .{timer.lap() / std.time.ns_per_s});
-    std.debug.print("Finished all frames.\n", .{});
 }
 
 //Guillaume Derex 2020-2026

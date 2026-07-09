@@ -19,7 +19,7 @@ var current_canvas: Canvas = undefined;
 var current_camera: Camera = .{};
 var current_skybox: *const Skybox = undefined;
 
-pub fn render(alloc: std.mem.Allocator, io: std.Io, scene: Scene, canvas: Canvas, camera: Camera, skybox: *const Skybox) !void {
+pub fn render(alloc: std.mem.Allocator, io: std.Io, scene: Scene, canvas: Canvas, camera: Camera, skybox: *const Skybox) !i64 {
     if (canvas.width == 0 or canvas.height == 0)
         return error.canvasWrongFormat;
 
@@ -61,8 +61,7 @@ pub fn render(alloc: std.mem.Allocator, io: std.Io, scene: Scene, canvas: Canvas
 
     const dur = std.Io.Timestamp.untilNow(start, io, clock);
 
-    std.debug.print("Iterations: {}\n", .{i});
-    std.debug.print("Duration: {} ms\n", .{dur.toMilliseconds()});
+    return dur.toMicroseconds();
 }
 
 //Guillaume Derex 2020-2026

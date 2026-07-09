@@ -48,6 +48,7 @@ pub fn refillFromCanvas(self: *RayLoad) !bool {
     try self.rays.ensureUnusedCapacity(self.alloc, self.canvas.height * self.canvas.width);
 
     //std.debug.print("Work cursor at {}\n", .{self.current_work_cursor});
+    // TODO: vectorized version
 
     for (self.current_work_cursor..@min((self.current_work_cursor + self.work_len), self.canvas.height * self.canvas.width)) |i| {
         const x = i % self.canvas.width;
@@ -69,7 +70,7 @@ pub fn refillFromCanvas(self: *RayLoad) !bool {
         self.rays.appendAssumeCapacity(.initForPixel(self.camera.origin, actual_dir, x, y, self.canvas));
     }
 
-    while (self.rays.len % vector.vec_len != 0)
+    while (self.rays.len % vector.vec_len != 0) // TODO: can be assumed if work_len is the right size
         self.rays.appendAssumeCapacity(.dummy);
 
     self.current_work_cursor += self.work_len;
@@ -139,6 +140,7 @@ pub fn update(self: *RayLoad) !void {
 
         i += 1;
     }
+    // TODO: do update vectorized
 
     while (self.rays.len % vector.vec_len != 0)
         self.rays.appendAssumeCapacity(.dummy);
