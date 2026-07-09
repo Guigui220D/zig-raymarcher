@@ -12,7 +12,6 @@ const RayLoad = @This();
 
 alloc: std.mem.Allocator,
 rays: std.MultiArrayList(Ray),
-temp_rays: std.MultiArrayList(Ray),
 canvas: *const Canvas,
 camera: *const Camera,
 current_work_cursor: usize,
@@ -26,20 +25,17 @@ pub fn init(alloc: std.mem.Allocator, canvas: *const Canvas, camera: *const Came
     ret.rays = .empty;
     errdefer ret.rays.deinit(ret.alloc);
 
-    ret.temp_rays = .empty;
-    errdefer ret.temp_rays.deinit(ret.alloc);
-
     ret.canvas = canvas;
     ret.camera = camera;
     ret.current_work_cursor = 0;
-    ret.work_len = 300000 / @sizeOf(Ray);
+    //ret.work_len = 300000 / @sizeOf(Ray);
+    ret.work_len = std.math.maxInt(usize);
 
     return ret;
 }
 
 pub fn deinit(self: *RayLoad) void {
     self.rays.deinit(self.alloc);
-    self.temp_rays.deinit(self.alloc);
 }
 
 pub fn refillFromCanvas(self: *RayLoad) !bool {
@@ -100,26 +96,16 @@ pub fn computeDistances(self: *RayLoad, renderables: []const Renderable) void {
         const ts: []usize = slice.items(.total_steps);
         const sc: []usize = slice.items(.steps_closer);
 
-        var v_x: vector.Vf64 = undefined;
-        var v_y: vector.Vf64 = undefined;
-        var v_z: vector.Vf64 = undefined;
-        var v_d: vector.Vf64 = undefined;
-        var v_m: vector.Vusize = undefined;
-        var v_md: vector.Vf64 = undefined;
-        var v_ts: vector.Vusize = undefined;
-        var v_sc: vector.Vusize = undefined;
-
         var i: usize = 0;
         while (i < x.len) : (i += vector.vec_len) {
-            // TODO: try again with cast from slice to vector
-            @memcpy(@as([*]f64, @ptrCast(&v_x)), x[i..(i + vector.vec_len)]);
-            @memcpy(@as([*]f64, @ptrCast(&v_y)), y[i..(i + vector.vec_len)]);
-            @memcpy(@as([*]f64, @ptrCast(&v_z)), z[i..(i + vector.vec_len)]);
-            @memcpy(@as([*]f64, @ptrCast(&v_d)), d[i..(i + vector.vec_len)]);
-            @memcpy(@as([*]usize, @ptrCast(&v_m)), m[i..(i + vector.vec_len)]);
-            @memcpy(@as([*]f64, @ptrCast(&v_md)), md[i..(i + vector.vec_len)]);
-            @memcpy(@as([*]usize, @ptrCast(&v_ts)), ts[i..(i + vector.vec_len)]);
-            @memcpy(@as([*]usize, @ptrCast(&v_sc)), sc[i..(i + vector.vec_len)]);
+            const v_x: vector.Vf64 = x[i..][0..vector.vec_len].*;
+            const v_y: vector.Vf64 = y[i..][0..vector.vec_len].*;
+            const v_z: vector.Vf64 = z[i..][0..vector.vec_len].*;
+            var v_d: vector.Vf64 = d[i..][0..vector.vec_len].*;
+            var v_m: vector.Vusize = m[i..][0..vector.vec_len].*;
+            const v_md: vector.Vf64 = md[i..][0..vector.vec_len].*;
+            const v_ts: vector.Vusize = ts[i..][0..vector.vec_len].*;
+            const v_sc: vector.Vusize = sc[i..][0..vector.vec_len].*;
 
             if (@reduce(.And, Ray.vStopped(v_md, v_ts, v_sc)))
                 continue;
@@ -130,8 +116,8 @@ pub fn computeDistances(self: *RayLoad, renderables: []const Renderable) void {
             v_d = @select(f64, v_pred, v_newd, v_d);
             v_m = @select(usize, v_pred, @as(vector.Vusize, @splat(renderable.material_id)), v_m);
 
-            @memcpy(d[i..(i + vector.vec_len)], @as([*]f64, @ptrCast(&v_d)));
-            @memcpy(m[i..(i + vector.vec_len)], @as([*]usize, @ptrCast(&v_m)));
+            d[i..][0..vector.vec_len].* = v_d;
+            m[i..][0..vector.vec_len].* = v_m;
         }
     }
 }
@@ -139,22 +125,20 @@ pub fn computeDistances(self: *RayLoad, renderables: []const Renderable) void {
 // TODO: function does too much?
 /// Progress each ray based on the minimum distance we found, instanciate new rays or collapse results and remove rays-
 pub fn update(self: *RayLoad) !void {
-    while (self.rays.pop()) |ray| {
-        // Check for hit (use results)
+    var i: usize = 0;
+    while (i < self.rays.len) {
+        const ray = self.rays.get(i);
+
         if (ray.stopped()) {
             ray.applyResult();
+            self.rays.swapRemove(i);
             continue;
         }
 
-        // Progress ray
-        try self.temp_rays.append(self.alloc, ray.progress());
-    }
+        self.rays.set(i, ray.progress());
 
-    // Swap two arrays
-    self.rays.clearRetainingCapacity();
-    const tmp = self.rays;
-    self.rays = self.temp_rays;
-    self.temp_rays = tmp;
+        i += 1;
+    }
 
     while (self.rays.len % vector.vec_len != 0)
         self.rays.appendAssumeCapacity(.dummy);
