@@ -2,49 +2,38 @@ const zlm = @import("zlm").as(f64);
 const std = @import("std");
 const PrimitiveFn = @import("primitives.zig").PrimitiveFn;
 const Material = @import("Material.zig");
+const Vf64 = @import("vector.zig").Vf64;
 
 const ObjectTypes = enum { primitive, transform, csg, repeat, meld };
 
 pub const Object = union(ObjectTypes) {
-    pub fn distance(self: Object, pos: zlm.Vec3) f64 {
+    pub fn distances(self: Object, xs: Vf64, ys: Vf64, zs: Vf64) Vf64 {
         switch (self) {
-            .primitive => return self.primitive(pos),
+            .primitive => |primitive| return primitive(xs, ys, zs),
             .transform => |transform| {
-                var transformed = pos;
-                //rotate
-                if (!transform.rotate.eql(zlm.Vec3.zero)) {
-                    { //x
-                        const sc = transform._xsincos;
-                        const new_y = sc.y * transformed.y - sc.x * transformed.z;
-                        const new_z = sc.x * transformed.y + sc.y * transformed.z;
-                        transformed.y = new_y;
-                        transformed.z = new_z;
-                    }
-                    { //y
-                        const sc = transform._ysincos;
-                        const new_x = sc.y * transformed.x + sc.x * transformed.z;
-                        const new_z = sc.y * transformed.z - sc.x * transformed.x;
-                        transformed.x = new_x;
-                        transformed.z = new_z;
-                    }
-                    { //z
-                        const sc = transform._zsincos;
-                        const new_x = sc.y * transformed.x - sc.x * transformed.y;
-                        const new_y = sc.x * transformed.x + sc.y * transformed.y;
-                        transformed.x = new_x;
-                        transformed.y = new_y;
-                    }
+                var tx = xs;
+                var ty = ys;
+                var tz = zs;
+
+                // rotate TODO
+
+                // scale
+                if (!transform.scale.eql(zlm.Vec3.one)) {
+                    tx /= @splat(transform.scale.x);
+                    ty /= @splat(transform.scale.y);
+                    tz /= @splat(transform.scale.z);
                 }
-                //scale
-                if (!transform.scale.eql(zlm.Vec3.one))
-                    transformed = transformed.div(transform.scale);
-                //translate
-                transformed = transformed.sub(transform.translate);
-                return transform.o.distance(transformed);
+
+                // translate
+                tx -= @splat(transform.translate.x);
+                ty -= @splat(transform.translate.y);
+                tz -= @splat(transform.translate.z);
+
+                return transform.o.distances(tx, ty, tz);
             },
             .csg => |csg| {
-                const a = csg.a.distance(pos);
-                const b = csg.b.distance(pos);
+                const a = csg.a.distances(xs, ys, zs);
+                const b = csg.b.distances(xs, ys, zs);
 
                 return switch (csg.mode) {
                     .intersectionSDF => @max(a, b),
@@ -53,22 +42,12 @@ pub const Object = union(ObjectTypes) {
                 };
             },
             .repeat => |repeat| {
-                var transformed = pos;
-
-                if (repeat.axis & 0b100 != 0) //x
-                    transformed.x = mmodulo(transformed.x, repeat.modulo);
-                if (repeat.axis & 0b010 != 0) //y
-                    transformed.y = mmodulo(transformed.y, repeat.modulo);
-                if (repeat.axis & 0b001 != 0) //z
-                    transformed.z = mmodulo(transformed.z, repeat.modulo);
-
-                return self.repeat.o.distance(transformed);
+                // TODO
+                return repeat.o.distances(xs, ys, zs);
             },
             .meld => |meld| {
-                const a = meld.a.distance(pos);
-                const b = meld.b.distance(pos);
-
-                return softmin(a, b, meld.meld_factor);
+                // TODO
+                return meld.a.distances(xs, ys, zs);
             },
         }
     }

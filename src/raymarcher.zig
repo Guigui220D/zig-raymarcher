@@ -19,69 +19,6 @@ var current_canvas: Canvas = undefined;
 var current_camera: Camera = .{};
 var current_skybox: *const Skybox = undefined;
 
-fn distanceToScene(scene: []const Renderable, pos: zlm.Vec3) f64 {
-    var distance: f64 = math.floatMax(f64);
-
-    for (scene) |renderable| {
-        const dist = renderable.object.distance(pos);
-        distance = @min(distance, dist);
-    }
-
-    return distance;
-}
-
-fn closestObject(scene: []const Renderable, pos: zlm.Vec3) ?*const Renderable {
-    var distance: f64 = math.floatMax(f64);
-    var obj: ?*const Renderable = null;
-
-    for (scene) |*renderable| {
-        const dist = renderable.object.distance(pos);
-
-        if (dist < distance) {
-            distance = dist;
-            obj = renderable;
-        }
-    }
-
-    return obj;
-}
-
-fn normal(rend: Renderable, pos: zlm.Vec3) zlm.Vec3 {
-    const dist = rend.object.distance(pos);
-
-    return zlm.Vec3.normalize(zlm.vec3(
-        rend.object.distance(pos.add(zlm.vec3(settings.hit_distance / 2, 0, 0))) - dist,
-        rend.object.distance(pos.add(zlm.vec3(0, settings.hit_distance / 2, 0))) - dist,
-        rend.object.distance(pos.add(zlm.vec3(0, 0, settings.hit_distance / 2))) - dist,
-    ));
-}
-
-fn reflect(incident: zlm.Vec3, normale: zlm.Vec3) zlm.Vec3 {
-    return incident.sub(normale.scale(incident.dot(normale) * 2.0));
-}
-
-fn march(position: *zlm.Vec3, direction: zlm.Vec3, distance: f64) void {
-    position.* = position.add(direction.scale(distance));
-}
-
-// TODO: return info about how occluded is the path to the point instead of just bool
-// TODO: consider reflections? (that may be rly hard)
-fn raymarchToPoint(scene: []const Renderable, goal: zlm.Vec3, start: zlm.Vec3) bool {
-    const dir = goal.sub(start).normalize();
-    var ray = start;
-    march(&ray, dir, settings.hit_distance * 1.1);
-
-    while (true) {
-        if (goal.sub(ray).dot(dir) <= 0)
-            return true; // We got past the light
-        const distance = distanceToScene(scene, ray);
-        if (distance <= settings.hit_distance)
-            return false; // We hit an object
-
-        march(&ray, dir, distance - (settings.hit_distance * 0.9));
-    }
-}
-
 pub fn render(alloc: std.mem.Allocator, io: std.Io, scene: Scene, canvas: Canvas, camera: Camera, skybox: *const Skybox) !void {
     if (canvas.width == 0 or canvas.height == 0)
         return error.canvasWrongFormat;
@@ -101,24 +38,25 @@ pub fn render(alloc: std.mem.Allocator, io: std.Io, scene: Scene, canvas: Canvas
     current_skybox = skybox;
 
     // Init one ray per pixel
-    var rayload: RayLoad = try .init(alloc);
+    var rayload: RayLoad = try .init(alloc, &canvas, &camera);
     defer rayload.deinit();
-    try rayload.fillForCanvas(&canvas, &camera);
 
     var i: usize = 0;
 
     const clock: std.Io.Clock = .real;
     const start = std.Io.Timestamp.now(io, clock);
 
-    // Progress each ray that exists once
-    while (rayload.hasWork()) {
-        // For each object, update the rays distance
-        rayload.computeDistances(scene.objects);
+    while (try rayload.refillFromCanvas()) {
+        // Progress each ray that exists once
+        while (rayload.hasWork()) {
+            // For each object, update the rays distance
+            rayload.computeDistances(scene.objects);
 
-        // Progress each ray based on the distances we found (or collapse results)
-        try rayload.update();
+            // Progress each ray based on the distances we found (or collapse results)
+            try rayload.update();
 
-        i += 1;
+            i += 1;
+        }
     }
 
     const dur = std.Io.Timestamp.untilNow(start, io, clock);
