@@ -240,6 +240,43 @@ fn readTransformObject(alloc: std.mem.Allocator, object: *const std.json.ObjectM
 
 fn readPrimitiveObject(_: std.mem.Allocator, object: *const std.json.ObjectMap) anyerror!Object {
     //std.debug.print("Reading primitive object...\n", .{});
+    // Default values
+    var rotate: zlm.Vec3 = .zero;
+    var scale: zlm.Vec3 = .one;
+    var translate: zlm.Vec3 = .zero;
+
+    // TODO: support integers
+
+    // Translation
+    if (object.get("x")) |x|
+        translate.x = try readScalar(f64, &x);
+    if (object.get("y")) |y|
+        translate.y = try readScalar(f64, &y);
+    if (object.get("z")) |z|
+        translate.z = try readScalar(f64, &z);
+
+    // Rotation
+    if (object.get("roll")) |roll|
+        rotate.x = zlm.toRadians(try readScalar(f64, &roll));
+    if (object.get("yaw")) |yaw|
+        rotate.y = zlm.toRadians(try readScalar(f64, &yaw));
+    if (object.get("pitch")) |pitch|
+        rotate.z = zlm.toRadians(try readScalar(f64, &pitch));
+
+    // Scale
+    if (object.get("scale")) |fullscale| {
+        const scale_val = try readScalar(f64, &fullscale);
+        scale.x = scale_val;
+        scale.y = scale_val;
+        scale.z = scale_val;
+    }
+    if (object.get("sx")) |x|
+        scale.x = try readScalar(f64, &x);
+    if (object.get("sy")) |y|
+        scale.y = try readScalar(f64, &y);
+    if (object.get("sz")) |z|
+        scale.z = try readScalar(f64, &z);
+
     // Get type
     const type_name = object.get("primitive") orelse return error.BadPrimitiveJson;
     if (type_name != .string)
@@ -247,9 +284,7 @@ fn readPrimitiveObject(_: std.mem.Allocator, object: *const std.json.ObjectMap) 
 
     // Read depending on type
     const primitive = try primitives.primitiveFromName(type_name.string);
-    return .{
-        .primitive = primitive,
-    };
+    return Object.bakePrimitive(primitive, rotate, scale, translate);
 }
 
 fn readCSGObject(alloc: std.mem.Allocator, object: *const std.json.ObjectMap) anyerror!Object {
