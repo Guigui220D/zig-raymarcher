@@ -3,6 +3,7 @@ const zlm = @import("zlm").as(f64);
 const img = @import("zigimg");
 
 const Color = @import("color.zig").Color;
+const CssColor = @import("csscolorparser").Color(f32);
 
 const Skybox = @This();
 
@@ -12,6 +13,7 @@ left: img.Image,
 right: img.Image,
 front: img.Image,
 back: img.Image,
+single_img: bool,
 
 pub fn init(alloc: std.mem.Allocator, io: std.Io, base_path: []const u8) !Skybox {
     const up_path = try std.fmt.allocPrint(alloc, "{s}/posy.jpg", .{base_path});
@@ -47,6 +49,26 @@ pub fn init(alloc: std.mem.Allocator, io: std.Io, base_path: []const u8) !Skybox
         .right = rt_img,
         .front = ft_img,
         .back = bk_img,
+        .single_img = false,
+    };
+}
+
+pub fn initColor(alloc: std.mem.Allocator, _: std.Io, color: CssColor) !Skybox {
+    const image = try img.Image.create(alloc, 1, 1, .bgra32);
+    image.pixels.bgra32[0] = .{
+        .a = 255,
+        .r = @trunc(color.red * 255.0),
+        .g = @trunc(color.green * 255.0),
+        .b = @trunc(color.blue * 255.0),
+    };
+    return .{
+        .up = image,
+        .down = image,
+        .back = image,
+        .front = image,
+        .left = image,
+        .right = image,
+        .single_img = true,
     };
 }
 
@@ -68,11 +90,13 @@ fn loadImageCheck(alloc: std.mem.Allocator, io: std.Io, path: []const u8) !img.I
 
 pub fn deinit(self: *Skybox, alloc: std.mem.Allocator) void {
     self.up.deinit(alloc);
-    self.down.deinit(alloc);
-    self.left.deinit(alloc);
-    self.right.deinit(alloc);
-    self.front.deinit(alloc);
-    self.back.deinit(alloc);
+    if (!self.single_img) {
+        self.down.deinit(alloc);
+        self.left.deinit(alloc);
+        self.right.deinit(alloc);
+        self.front.deinit(alloc);
+        self.back.deinit(alloc);
+    }
 }
 
 pub const Direction = enum {

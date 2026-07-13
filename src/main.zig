@@ -11,6 +11,7 @@ const Camera = @import("Camera.zig");
 const Scene = @import("Scene.zig");
 const Skybox = @import("Skybox.zig");
 const settings = @import("settings.zig");
+const CssColor = @import("csscolorparser").Color(f32);
 
 pub const tracy_impl = @import("tracy_impl");
 
@@ -67,7 +68,7 @@ pub fn main(init: std.process.Init) !void {
     defer scene.deinit();
 
     // TODO: make configurable (no hardcode)
-    var skybox: Skybox = try .init(alloc, io, "ressources/Yokohama2");
+    var skybox: Skybox = try .initColor(alloc, io, try CssColor.parse("blue"));
     defer skybox.deinit(alloc);
 
     // What should be in the scene file: everything describing geometry

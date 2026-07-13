@@ -49,7 +49,7 @@ pub fn refillFromCanvas(self: *RayLoad) !bool {
 
     //std.debug.print("Work cursor at {}\n", .{self.current_work_cursor});
     // TODO: vectorized version
-
+    //self.rays.resize(self.alloc, self.work_len);
     for (self.current_work_cursor..@min((self.current_work_cursor + self.work_len), self.canvas.height * self.canvas.width)) |i| {
         const x = i % self.canvas.width;
         const y = i / self.canvas.width;
