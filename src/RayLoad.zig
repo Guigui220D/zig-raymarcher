@@ -136,12 +136,11 @@ pub fn update(self: *RayLoad) !void {
             continue;
         }
 
-        self.rays.set(i, ray.progress());
-
         i += 1;
     }
-    // TODO: do update vectorized
 
     while (self.rays.len % vector.vec_len != 0)
         self.rays.appendAssumeCapacity(.dummy);
+
+    Ray.vProgress(&self.rays.slice());
 }

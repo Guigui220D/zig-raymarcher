@@ -17,6 +17,7 @@ pub const dummy = Ray{
     .dir_y = 0,
     .dir_z = 0,
     .meta = null,
+    .min_dist = 0,
 };
 
 /// Current position of the ray (x)
@@ -86,6 +87,46 @@ pub fn progress(self: Ray) Ray {
         .steps_closer = if (getting_closer) self.steps_closer + 1 else 0,
         .meta = self.meta,
     };
+}
+
+pub fn vProgress(slice: *const std.MultiArrayList(Ray).Slice) void {
+    const xp_s = slice.items(.pos_x);
+    const yp_s = slice.items(.pos_y);
+    const zp_s = slice.items(.pos_z);
+    const xd_s = slice.items(.dir_x);
+    const yd_s = slice.items(.dir_y);
+    const zd_s = slice.items(.dir_z);
+    const ts_s = slice.items(.total_steps);
+    const sc_s = slice.items(.steps_closer);
+    const md_s = slice.items(.min_dist);
+
+    var i: usize = 0;
+    while (i < slice.len) : (i += vector.vec_len) {
+        var xp: vector.Vf64 = xp_s[i..][0..vector.vec_len].*;
+        var yp: vector.Vf64 = yp_s[i..][0..vector.vec_len].*;
+        var zp: vector.Vf64 = zp_s[i..][0..vector.vec_len].*;
+        const xd: vector.Vf64 = xd_s[i..][0..vector.vec_len].*;
+        const yd: vector.Vf64 = yd_s[i..][0..vector.vec_len].*;
+        const zd: vector.Vf64 = zd_s[i..][0..vector.vec_len].*;
+        var ts: vector.Vusize = ts_s[i..][0..vector.vec_len].*;
+        var sc: vector.Vusize = sc_s[i..][0..vector.vec_len].*;
+        const md: vector.Vf64 = md_s[i..][0..vector.vec_len].*;
+
+        xp += xd * md;
+        yp += yd * md;
+        zp += zd * md;
+        ts += @as(vector.Vusize, @splat(1));
+        sc += @as(vector.Vusize, @splat(1));
+
+        xp_s[i..][0..vector.vec_len].* = xp;
+        yp_s[i..][0..vector.vec_len].* = yp;
+        zp_s[i..][0..vector.vec_len].* = zp;
+        xd_s[i..][0..vector.vec_len].* = xd;
+        yd_s[i..][0..vector.vec_len].* = yd;
+        zd_s[i..][0..vector.vec_len].* = zd;
+        ts_s[i..][0..vector.vec_len].* = ts;
+        sc_s[i..][0..vector.vec_len].* = sc;
+    }
 }
 
 /// For rays that have reached the end of their work, apply the results of the calculations
