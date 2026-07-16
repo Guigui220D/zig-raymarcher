@@ -45,7 +45,7 @@ pub fn refillFromCanvas(self: *RayLoad) !bool {
     const fwidth: f64 = @floatFromInt(self.canvas.width);
     const fheight: f64 = @floatFromInt(self.canvas.height);
 
-    try self.rays.ensureUnusedCapacity(self.alloc, self.canvas.height * self.canvas.width);
+    try self.rays.ensureUnusedCapacity(self.alloc, self.canvas.height * self.canvas.width * 2);
 
     //std.debug.print("Work cursor at {}\n", .{self.current_work_cursor});
     // TODO: vectorized version
@@ -93,7 +93,6 @@ pub fn computeDistances(self: *RayLoad, renderables: []const Renderable) void {
         const z: []const f64 = slice.items(.pos_z);
         const d: []f64 = slice.items(.min_dist);
         const m: []usize = slice.items(.closest_mat);
-        const md: []f64 = slice.items(.min_dist);
         const ts: []usize = slice.items(.total_steps);
         const sc: []usize = slice.items(.steps_closer);
 
@@ -104,11 +103,10 @@ pub fn computeDistances(self: *RayLoad, renderables: []const Renderable) void {
             const v_z: vector.Vf64 = z[i..][0..vector.vec_len].*;
             var v_d: vector.Vf64 = d[i..][0..vector.vec_len].*;
             var v_m: vector.Vusize = m[i..][0..vector.vec_len].*;
-            const v_md: vector.Vf64 = md[i..][0..vector.vec_len].*;
             const v_ts: vector.Vusize = ts[i..][0..vector.vec_len].*;
             const v_sc: vector.Vusize = sc[i..][0..vector.vec_len].*;
 
-            if (@reduce(.And, Ray.vStopped(v_md, v_ts, v_sc)))
+            if (@reduce(.And, Ray.vStopped(v_d, v_ts, v_sc)))
                 continue;
 
             const v_newd: vector.Vf64 = renderable.object.distances(v_x, v_y, v_z);
@@ -123,24 +121,60 @@ pub fn computeDistances(self: *RayLoad, renderables: []const Renderable) void {
     }
 }
 
-// TODO: function does too much?
 /// Progress each ray based on the minimum distance we found, instanciate new rays or collapse results and remove rays-
 pub fn update(self: *RayLoad) !void {
+    // Disgusting function! TODO: make it easier to understand
     var i: usize = 0;
     while (i < self.rays.len) {
-        const ray = self.rays.get(i);
+        // Make sure we can fill vectors
+        while (i + vector.vec_len > self.rays.len)
+            self.rays.appendAssumeCapacity(.dummy);
 
-        if (ray.stopped()) {
-            ray.applyResult();
-            self.rays.swapRemove(i);
-            continue;
+        const slice = self.rays.slice();
+        const v_d: vector.Vf64 = slice.items(.min_dist)[i..][0..vector.vec_len].*;
+        const v_ts: vector.Vusize = slice.items(.total_steps)[i..][0..vector.vec_len].*;
+        const v_sc: vector.Vusize = slice.items(.steps_closer)[i..][0..vector.vec_len].*;
+
+        const v_stop = Ray.vStopped(v_d, v_ts, v_sc);
+        const first_true = std.simd.firstTrue(v_stop);
+        const all_stop = @reduce(.And, v_stop); // Flags that the whole vector will be removed
+
+        // could use VPCOMPRESSD on AVX512
+        // For each stopped ray, apply results
+        // Not great!!! we are checking some values several times
+        var rem_correction: usize = 0; // Value used to correct index when we remove within the same vector
+        inline for (0..vector.vec_len) |j| {
+            if (v_stop[j]) {
+                const index = j + i - rem_correction;
+                // TODO: we could do it several time until we get a non finished vector
+                // That would allow always progressing by vec_len, and avoiding re-checks
+                const ray = self.rays.get(index);
+
+                // Doesn't work: the swapped element might come from the same vector
+                ray.applyResult();
+                if (i + vector.vec_len >= self.rays.len and !all_stop) {
+                    self.rays.set(index, .dummy);
+                } else {
+                    //std.debug.print("here?\n", .{});
+                    if (all_stop)
+                        rem_correction += 1;
+                    self.rays.swapRemove(index);
+                }
+            }
         }
 
-        i += 1;
+        // We can safely advance the cursor by how many non finished rays there were first
+        if (first_true) |offset| {
+            i += offset;
+        } else {
+            i += vector.vec_len;
+        }
+        //std.debug.print("Left: {}\n", .{self.rays.len});
     }
 
     while (self.rays.len % vector.vec_len != 0)
         self.rays.appendAssumeCapacity(.dummy);
 
+    //std.debug.print("Progress\n", .{});
     Ray.vProgress(&self.rays.slice());
 }

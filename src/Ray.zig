@@ -62,14 +62,12 @@ pub fn initForPixel(pos: zlm.Vec3, dir: zlm.Vec3, px: usize, py: usize, canvas: 
 
 /// Returns true if the ray isn't done working
 pub fn stopped(self: Ray) bool {
-    if (self.meta == null)
-        return true; // TODO: better system (meta will change anyways)
     return self.min_dist < settings.hit_distance or self.total_steps >= settings.max_steps or self.steps_closer >= settings.max_steps_getting_closer;
 }
 
 pub fn vStopped(min_dist: vector.Vf64, total_steps: vector.Vusize, steps_closer: vector.Vusize) vector.Vbool {
-    return (min_dist < @as(vector.Vf64, @splat(settings.hit_distance))) &
-        (total_steps >= @as(vector.Vusize, @splat(settings.max_steps))) &
+    return (min_dist < @as(vector.Vf64, @splat(settings.hit_distance))) |
+        (total_steps >= @as(vector.Vusize, @splat(settings.max_steps))) |
         (steps_closer > @as(vector.Vusize, @splat(settings.max_steps_getting_closer)));
 }
 
