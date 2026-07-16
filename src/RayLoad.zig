@@ -142,26 +142,25 @@ pub fn update(self: *RayLoad) !void {
         // could use VPCOMPRESSD on AVX512
         // For each stopped ray, apply results
         // Not great!!! we are checking some values several times
-        var rem_correction: usize = 0; // Value used to correct index when we remove within the same vector
         inline for (0..vector.vec_len) |j| {
             if (v_stop[j]) {
-                const index = j + i - rem_correction;
+                const index = j + i;
                 // TODO: we could do it several time until we get a non finished vector
                 // That would allow always progressing by vec_len, and avoiding re-checks
                 const ray = self.rays.get(index);
 
                 // Doesn't work: the swapped element might come from the same vector
                 ray.applyResult();
-                if (i + vector.vec_len >= self.rays.len and !all_stop) {
+                if (i + vector.vec_len >= self.rays.len) {
                     self.rays.set(index, .dummy);
                 } else {
-                    //std.debug.print("here?\n", .{});
-                    if (all_stop)
-                        rem_correction += 1;
                     self.rays.swapRemove(index);
                 }
             }
         }
+
+        if (i + vector.vec_len == self.rays.len and all_stop)
+            self.rays.shrinkRetainingCapacity(self.rays.len - vector.vec_len);
 
         // We can safely advance the cursor by how many non finished rays there were first
         if (first_true) |offset| {

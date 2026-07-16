@@ -14,7 +14,7 @@ pub fn saveAs(alloc: std.mem.Allocator, io: std.Io, canvas: *Canvas, path: []con
     );
     defer image.deinit(alloc);
     try image.convert(alloc, .rgb24);
-    try image.writeToFilePath(alloc, io, path, &.{}, .{ .jpeg = .{ .quality = 100 } });
+    try image.writeToFilePath(alloc, io, path, &.{}, .{ .png = .{} });
 }
 
 //Guillaume Derex 2026

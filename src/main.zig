@@ -115,8 +115,8 @@ pub fn main(init: std.process.Init) !void {
         canvas.adjustColors();
 
         std.debug.print("Saving...\n", .{});
-        try image_save.saveAs(alloc, io, &canvas, "render/frame.jpg");
-        std.debug.print("Frame saved to render/frame.jpg.\n", .{});
+        try image_save.saveAs(alloc, io, &canvas, "render/frame.png");
+        std.debug.print("Frame saved to render/frame.png.\n", .{});
     }
 }
 
