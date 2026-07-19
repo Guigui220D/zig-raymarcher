@@ -136,8 +136,8 @@ pub fn update(self: *RayLoad) !void {
         const v_sc: vector.Vusize = slice.items(.steps_closer)[i..][0..vector.vec_len].*;
 
         const v_stop = Ray.vStopped(v_d, v_ts, v_sc);
-        const first_true = std.simd.firstTrue(v_stop);
         const all_stop = @reduce(.And, v_stop); // Flags that the whole vector will be removed
+        var progress: usize = vector.vec_len;
 
         // could use VPCOMPRESSD on AVX512
         // For each stopped ray, apply results
@@ -154,6 +154,8 @@ pub fn update(self: *RayLoad) !void {
                 if (i + vector.vec_len >= self.rays.len) {
                     self.rays.set(index, .dummy);
                 } else {
+                    if (i < progress)
+                        progress = i;
                     self.rays.swapRemove(index);
                 }
             }
@@ -163,11 +165,7 @@ pub fn update(self: *RayLoad) !void {
             self.rays.shrinkRetainingCapacity(self.rays.len - vector.vec_len);
 
         // We can safely advance the cursor by how many non finished rays there were first
-        if (first_true) |offset| {
-            i += offset;
-        } else {
-            i += vector.vec_len;
-        }
+        i += progress;
         //std.debug.print("Left: {}\n", .{self.rays.len});
     }
 
