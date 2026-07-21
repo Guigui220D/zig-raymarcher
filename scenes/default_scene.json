@@ -65,28 +65,34 @@
         {
             "material": "mirror",
             "object": {
-                "type": "primitive",
+                "type": "transform",
                 "pitch": -10,
                 "yaw": 10,
                 "roll": 10,
                 "scale": 6,
                 "y": 2,
                 "z": 3,
-                "primitive": "cube"
+                "object": {
+                    "type": "primitive",
+                    "primitive": "cube"
+                }
             }
         },
         {
             "enabled": true,
             "material": "green",
             "object": {
-                "type": "primitive",
+                "type": "transform",
                 "x": 3,
                 "z": 6,
                 "scale": 2,
                 "pitch": 10,
                 "yaw": 10,
                 "roll": 10,
-                "primitive": "cylinder"
+                "object": {
+                    "type": "primitive",
+                    "primitive": "cylinder"
+                }
             }
         }
     ]
