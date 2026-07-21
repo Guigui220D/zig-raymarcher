@@ -4,6 +4,7 @@ const zlm = @import("zlm").as(f64);
 const Ray = @import("Ray.zig");
 const Canvas = @import("Canvas.zig");
 const Renderable = @import("Renderable.zig");
+const Material = @import("Material.zig");
 const Camera = @import("Camera.zig");
 const CacheMindfulIterator = @import("cache_mindful.zig").Iterator(Ray);
 const vector = @import("vector.zig");
@@ -11,14 +12,17 @@ const vector = @import("vector.zig");
 const RayLoad = @This();
 
 alloc: std.mem.Allocator,
-rays: std.MultiArrayList(Ray),
+info_arena: std.heap.ArenaAllocator,
+rays: Ray.Rays,
 canvas: *const Canvas,
 camera: *const Camera,
 current_work_cursor: usize,
 work_len: usize,
+scene: []const Renderable,
+materials: []const Material,
 
 /// Init the rayload with rays for each pixel
-pub fn init(alloc: std.mem.Allocator, canvas: *const Canvas, camera: *const Camera) !RayLoad {
+pub fn init(alloc: std.mem.Allocator, canvas: *const Canvas, camera: *const Camera, scene: []const Renderable, materials: []const Material) !RayLoad {
     var ret: RayLoad = undefined;
     ret.alloc = alloc;
 
@@ -30,11 +34,16 @@ pub fn init(alloc: std.mem.Allocator, canvas: *const Canvas, camera: *const Came
     ret.current_work_cursor = 0;
     //ret.work_len = 300000 / @sizeOf(Ray);
     ret.work_len = std.math.maxInt(usize);
+    ret.materials = materials;
+    ret.scene = scene;
+
+    ret.info_arena = .init(alloc);
 
     return ret;
 }
 
 pub fn deinit(self: *RayLoad) void {
+    self.info_arena.deinit();
     self.rays.deinit(self.alloc);
 }
 
@@ -85,9 +94,9 @@ pub fn hasWork(self: *const RayLoad) bool {
 }
 
 /// Update the minimum distance of each ray based on a scene element
-pub fn computeDistances(self: *RayLoad, renderables: []const Renderable) void {
+pub fn computeDistances(self: *RayLoad) void {
     const slice = self.rays.slice();
-    for (renderables) |renderable| {
+    for (self.scene) |renderable| {
         const x: []const f64 = slice.items(.pos_x);
         const y: []const f64 = slice.items(.pos_y);
         const z: []const f64 = slice.items(.pos_z);
@@ -109,7 +118,7 @@ pub fn computeDistances(self: *RayLoad, renderables: []const Renderable) void {
             if (@reduce(.And, Ray.vStopped(v_d, v_ts, v_sc)))
                 continue;
 
-            const v_newd: vector.Vf64 = renderable.object.distances(v_x, v_y, v_z);
+            const v_newd: vector.Vf64 = renderable.object.vDistance(v_x, v_y, v_z);
 
             const v_pred = v_newd < v_d;
             v_d = @select(f64, v_pred, v_newd, v_d);
@@ -142,6 +151,7 @@ pub fn update(self: *RayLoad) !void {
         // could use VPCOMPRESSD on AVX512
         // For each stopped ray, apply results
         // Not great!!! we are checking some values several times
+        // TODO: can we do that without an inline loop?
         inline for (0..vector.vec_len) |j| {
             if (v_stop[j]) {
                 const index = j + i;
@@ -149,8 +159,11 @@ pub fn update(self: *RayLoad) !void {
                 // That would allow always progressing by vec_len, and avoiding re-checks
                 const ray = self.rays.get(index);
 
-                // Doesn't work: the swapped element might come from the same vector
-                ray.applyResult();
+                // TODO: get material info from the ray
+                // decide or not to recurse
+                // apply the color obtained from the ray to the
+                //const normal = ray.normal(self.scene);
+                _ = try ray.hit(self.info_arena.allocator(), &self.rays, self.materials);
                 if (i + vector.vec_len >= self.rays.len) {
                     self.rays.set(index, .dummy);
                 } else {

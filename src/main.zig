@@ -109,9 +109,9 @@ pub fn main(init: std.process.Init) !void {
         var canvas = try Canvas.init(alloc, 1000, 1000);
         defer canvas.deinit();
 
-        _ = try raymarcher.render(alloc, io, scene, canvas, .{}, &skybox);
+        const time = try raymarcher.render(alloc, io, scene, canvas, .{}, &skybox);
 
-        //std.debug.print("Adjusting colors...\n", .{});
+        std.debug.print("Done in {} ms\n", .{@divFloor(time, 1000)});
         canvas.adjustColors();
 
         std.debug.print("Saving...\n", .{});

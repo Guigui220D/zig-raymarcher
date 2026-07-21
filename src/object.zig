@@ -7,7 +7,7 @@ const Vf64 = @import("vector.zig").Vf64;
 const ObjectTypes = enum { primitive, transform, csg, repeat, meld };
 
 pub const Object = union(ObjectTypes) {
-    pub fn distances(self: Object, xs: Vf64, ys: Vf64, zs: Vf64) Vf64 {
+    pub fn vDistance(self: Object, xs: Vf64, ys: Vf64, zs: Vf64) Vf64 {
         switch (self) {
             .primitive => |primitive| {
                 var tx = xs;
@@ -101,11 +101,11 @@ pub const Object = union(ObjectTypes) {
                 ty -= @splat(transform.translate.y);
                 tz -= @splat(transform.translate.z);
 
-                return transform.o.distances(tx, ty, tz);
+                return transform.o.vDistance(tx, ty, tz);
             },
             .csg => |csg| {
-                const a = csg.a.distances(xs, ys, zs);
-                const b = csg.b.distances(xs, ys, zs);
+                const a = csg.a.vDistance(xs, ys, zs);
+                const b = csg.b.vDistance(xs, ys, zs);
 
                 return switch (csg.mode) {
                     .intersectionSDF => @max(a, b),
@@ -115,11 +115,11 @@ pub const Object = union(ObjectTypes) {
             },
             .repeat => |repeat| {
                 // TODO
-                return repeat.o.distances(xs, ys, zs);
+                return repeat.o.vDistance(xs, ys, zs);
             },
             .meld => |meld| {
                 // TODO
-                return meld.a.distances(xs, ys, zs);
+                return meld.a.vDistance(xs, ys, zs);
             },
         }
     }
@@ -188,7 +188,7 @@ pub const Object = union(ObjectTypes) {
     },
 };
 
-pub const CSGType = enum(u2) { intersectionSDF, unionSDF, differenceSDF };
+pub const CSGType = enum { intersectionSDF, unionSDF, differenceSDF };
 
 inline fn mmodulo(f: f64, m: f64) f64 {
     return @mod(f + m / 2, m) - m / 2;

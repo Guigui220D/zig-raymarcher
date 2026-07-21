@@ -38,7 +38,7 @@ pub fn render(alloc: std.mem.Allocator, io: std.Io, scene: Scene, canvas: Canvas
     current_skybox = skybox;
 
     // Init one ray per pixel
-    var rayload: RayLoad = try .init(alloc, &canvas, &camera);
+    var rayload: RayLoad = try .init(alloc, &canvas, &camera, scene.objects, scene.materials);
     defer rayload.deinit();
 
     var i: usize = 0;
@@ -50,7 +50,7 @@ pub fn render(alloc: std.mem.Allocator, io: std.Io, scene: Scene, canvas: Canvas
         // Progress each ray that exists once
         while (rayload.hasWork()) {
             // For each object, update the rays distance
-            rayload.computeDistances(scene.objects);
+            rayload.computeDistances();
 
             // Progress each ray based on the distances we found (or collapse results)
             try rayload.update();

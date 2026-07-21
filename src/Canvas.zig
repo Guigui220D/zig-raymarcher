@@ -25,7 +25,7 @@ pub fn adjustColors(self: *Canvas) void {
     floats.ptr = @ptrCast(&self.data[0]);
     floats.len = self.data.len * 3;
     const max = @max(1, std.mem.max(f32, floats));
-    const min = minMoreThan0(floats, max);
+    const min = minMoreThan0(floats, max); // TODO: this is really bad logic. Sometimes annihilate colors
 
     //max *= 1.1;
 

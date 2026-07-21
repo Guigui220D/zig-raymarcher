@@ -6,8 +6,11 @@ const settings = @import("settings.zig");
 const Color = @import("color.zig").Color;
 const csscolorparser = @import("csscolorparser");
 const vector = @import("vector.zig");
+const RayTarget = @import("ray_reason.zig").Target;
+const Material = @import("Material.zig");
 
 const Ray = @This();
+pub const Rays = std.MultiArrayList(Ray);
 
 pub const dummy = Ray{
     .pos_x = 0,
@@ -16,7 +19,7 @@ pub const dummy = Ray{
     .dir_x = 1,
     .dir_y = 0,
     .dir_z = 0,
-    .meta = null,
+    .target = .{ .dummy = {} },
     .min_dist = 0,
 };
 
@@ -41,7 +44,7 @@ total_steps: usize = 0,
 /// Number steps for which we have been getting closer to the scene
 steps_closer: usize = 0,
 /// Metadata of the ray (what are throwing a ray for?)
-meta: ?Meta,
+target: RayTarget,
 
 /// Init a ray for a pixel
 pub fn initForPixel(pos: zlm.Vec3, dir: zlm.Vec3, px: usize, py: usize, canvas: *const Canvas) Ray {
@@ -52,10 +55,12 @@ pub fn initForPixel(pos: zlm.Vec3, dir: zlm.Vec3, px: usize, py: usize, canvas: 
         .dir_x = dir.x,
         .dir_y = dir.y,
         .dir_z = dir.z,
-        .meta = .{
-            .pix_x = px,
-            .pix_y = py,
-            .canvas = canvas,
+        .target = .{
+            .pixel = .{
+                .canvas = canvas,
+                .pix_x = px,
+                .pix_y = py,
+            },
         },
     };
 }
@@ -127,31 +132,12 @@ pub fn vProgress(slice: *const std.MultiArrayList(Ray).Slice) void {
     }
 }
 
-/// For rays that have reached the end of their work, apply the results of the calculations
-pub fn applyResult(self: Ray) void {
-    // Material id based coloring for debug
-    if (self.meta) |meta| {
-        const hue = @as(f32, @floatFromInt(self.closest_mat)) / @as(f32, @floatFromInt(6));
-
-        // TODO: would this logic really be here?
-        var col = csscolorparser.Color(f32).fromHsl(hue * 360, 1.0, 0.5, 1.0);
-
-        if (self.min_dist > settings.hit_distance)
-            col = csscolorparser.Color(f32).fromRgba8(0, 0, 0, 255);
-
-        meta.canvas.data[meta.pix_y * meta.canvas.width + meta.pix_x] = Color{
-            .a = col.alpha,
-            .r = col.red,
-            .g = col.green,
-            .b = col.blue,
-        };
-    }
+// TODO: get context for normal for hit function
+/// Selects a color from the closest material or skybox and applies it to the target
+pub fn hit(self: Ray, alloc: std.mem.Allocator, rays: *Rays, materials: []const Material) !bool {
+    const col = if (self.min_dist <= settings.hit_distance * 1.1)
+        materials[self.closest_mat].diffuse
+    else
+        Color{ .r = 0, .g = 0, .b = 0, .a = 1 };
+    return try self.target.hit(alloc, col, self, rays);
 }
-
-/// Metadata of a ray (what are throwing a ray for?)
-pub const Meta = struct {
-    // Will be different later
-    pix_x: usize,
-    pix_y: usize,
-    canvas: *const Canvas,
-};
