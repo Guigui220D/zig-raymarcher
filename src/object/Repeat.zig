@@ -1,0 +1,65 @@
+//! Repetition of scene objects
+const std = @import("std");
+const zlm = @import("zlm").as(f64);
+const Object = @import("../object.zig").Object;
+const vec = @import("../vector.zig");
+
+const Repeat = @This();
+
+/// Object being repeated
+o: *Object,
+/// Axis along which we are repeating
+axis: u3,
+/// Period of the repetition
+modulo: f64,
+
+/// Inits a repeat object
+pub fn init(object: *Object, repeat_x: bool, repeat_y: bool, repeat_z: bool, modulo: f64) Repeat {
+    return .{
+        .o = object,
+        .axis = (@intFromBool(repeat_x) << 2) | (@intFromBool(repeat_y) << 1) | (@intFromBool(repeat_z) << 0),
+        .modulo = modulo,
+    };
+}
+
+/// Calculates the distance from this object
+pub fn distance(self: Repeat, pos: zlm.Vec3) f64 {
+    var temp = pos;
+
+    if (self.axis & 0b100 != 0) // x
+        temp.x = repeatFunction(temp.x, self.modulo);
+    if (self.axis & 0b010 != 0) // y
+        temp.y = repeatFunction(temp.y, self.modulo);
+    if (self.axis & 0b001 != 0) // z
+        temp.z = repeatFunction(temp.z, self.modulo);
+
+    return self.repeat.o.distance(temp);
+}
+
+/// Calculates the distance from this object (vectorized)
+pub fn vDistance(self: Repeat, x: vec.Vf64, y: vec.Vf64, z: vec.Vf64) vec.Vf64 {
+    var tx = x;
+    var ty = y;
+    var tz = z;
+
+    if (self.axis & 0b100 != 0) // x
+        tx = vRepeatFunction(tx, self.modulo);
+    if (self.axis & 0b010 != 0) // y
+        ty = vRepeatFunction(ty, self.modulo);
+    if (self.axis & 0b001 != 0) // z
+        tz = vRepeatFunction(tz, self.modulo);
+
+    return self.o.vDistance(tx, ty, tz);
+}
+
+/// Function that acts like modulo but centered
+inline fn repeatFunction(val: f64, mod: f64) f64 {
+    return @mod(val + mod / 2, mod) - mod / 2;
+}
+
+/// Function that acts like modulo but centered (vectorized)
+inline fn vRepeatFunction(val: vec.Vf64, mod: f64) vec.Vf64 {
+    return @mod(val + @as(vec.Vf64, @splat(mod / 2)), @as(vec.Vf64, @splat(mod))) - @as(vec.Vf64, @splat(mod / 2));
+}
+
+//Guillaume Derex 2020-2026

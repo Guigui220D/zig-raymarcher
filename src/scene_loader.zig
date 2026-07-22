@@ -3,11 +3,11 @@ const zlm = @import("zlm").as(f64);
 
 const Material = @import("Material.zig");
 const Object = @import("object.zig").Object;
-const CSGType = @import("object.zig").CSGType;
+const CsgType = @import("object/Csg.zig").Type;
 const Renderable = @import("Renderable.zig");
 const Scene = @import("Scene.zig");
 const Color = @import("color.zig").Color;
-const primitives = @import("primitives.zig");
+const Primitive = @import("object/Primitive.zig");
 const LightSource = @import("LightSource.zig");
 const csscolorparser = @import("csscolorparser");
 
@@ -235,7 +235,9 @@ fn readTransformObject(alloc: std.mem.Allocator, object: *const std.json.ObjectM
     errdefer alloc.destroy(obj_copy);
     obj_copy.* = obj;
 
-    return Object.bakeTransform(obj_copy, rotate, scale, translate);
+    return .{
+        .transform = .init(obj_copy, rotate, scale, translate),
+    };
 }
 
 fn readPrimitiveObject(_: std.mem.Allocator, object: *const std.json.ObjectMap) anyerror!Object {
@@ -246,7 +248,7 @@ fn readPrimitiveObject(_: std.mem.Allocator, object: *const std.json.ObjectMap) 
         return error.BadPrimitiveJson;
 
     // Read depending on type
-    const primitive = try primitives.primitiveFromName(type_name.string);
+    const primitive = Primitive.all.get(type_name.string) orelse return error.UnknownPrimitiveName;
     return .{
         .primitive = primitive,
     };
@@ -260,14 +262,14 @@ fn readCSGObject(alloc: std.mem.Allocator, object: *const std.json.ObjectMap) an
         return error.BadCsgJson;
 
     // Get CSG type
-    var csg_type: ?CSGType = null;
+    var csg_type: ?CsgType = null;
 
     if (std.ascii.eqlIgnoreCase("union", type_name.string))
-        csg_type = .unionSDF;
+        csg_type = .unionCsg;
     if (std.ascii.eqlIgnoreCase("intersection", type_name.string))
-        csg_type = .intersectionSDF;
+        csg_type = .intersectionCsg;
     if (std.ascii.eqlIgnoreCase("difference", type_name.string))
-        csg_type = .differenceSDF;
+        csg_type = .differenceCsg;
 
     if (csg_type == null)
         return error.BadCsgJson;
@@ -288,11 +290,7 @@ fn readCSGObject(alloc: std.mem.Allocator, object: *const std.json.ObjectMap) an
     obj2_copy.* = obj2;
 
     return .{
-        .csg = .{
-            .mode = csg_type.?,
-            .a = obj1_copy,
-            .b = obj2_copy,
-        },
+        .csg = .init(obj1_copy, obj2_copy, csg_type.?),
     };
 }
 
