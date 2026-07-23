@@ -23,7 +23,8 @@
                     "type": "primitive",
                     "primitive": "plane"
                 }
-            }
+            },
+            "enabled": false
         },
         {
             "material": "red",

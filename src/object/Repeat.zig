@@ -33,7 +33,7 @@ pub fn distance(self: Repeat, pos: zlm.Vec3) f64 {
     if (self.axis & 0b001 != 0) // z
         temp.z = repeatFunction(temp.z, self.modulo);
 
-    return self.repeat.o.distance(temp);
+    return self.o.distance(temp);
 }
 
 /// Calculates the distance from this object (vectorized)

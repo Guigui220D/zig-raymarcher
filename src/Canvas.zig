@@ -25,9 +25,7 @@ pub fn adjustColors(self: *Canvas) void {
     floats.ptr = @ptrCast(&self.data[0]);
     floats.len = self.data.len * 3;
     const max = @max(1, std.mem.max(f32, floats));
-    const min = minMoreThan0(floats, max); // TODO: this is really bad logic. Sometimes annihilate colors
-
-    //max *= 1.1;
+    const min = @min(0, std.mem.min(f32, floats));
 
     const range = max - min;
 
@@ -36,17 +34,6 @@ pub fn adjustColors(self: *Canvas) void {
     for (self.data) |*col| {
         col.adjust(min, range);
     }
-}
-
-fn minMoreThan0(vals: []const f32, max: f32) f32 {
-    var best: f32 = std.math.floatMax(f32);
-    for (vals) |v| {
-        if (v < best and v > (max / 255))
-            best = v;
-    }
-    if (best == std.math.floatMax(f32))
-        return 0;
-    return best;
 }
 
 //Guillaume Derex 2026
