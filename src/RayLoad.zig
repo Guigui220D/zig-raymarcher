@@ -1,13 +1,17 @@
+//! Set of rays that the renderer is working on
+//! This class contains the methods to evolve that set of rays
+// TODO: this class actually does many things. It's pretty much the renderer. Does it make
+// sense for it to have this class name?
 const std = @import("std");
 const zlm = @import("zlm").as(f64);
 
 const Ray = @import("Ray.zig");
 const Canvas = @import("Canvas.zig");
-const Renderable = @import("Renderable.zig");
-const Material = @import("Material.zig");
+const Scene = @import("Scene.zig");
 const Camera = @import("Camera.zig");
 const CacheMindfulIterator = @import("cache_mindful.zig").Iterator(Ray);
 const vector = @import("vector.zig");
+const settings = @import("settings.zig");
 
 const RayLoad = @This();
 
@@ -18,11 +22,11 @@ canvas: *const Canvas,
 camera: *const Camera,
 current_work_cursor: usize,
 work_len: usize,
-scene: []const Renderable,
-materials: []const Material,
+scene: *const Scene,
+report: ?*std.Io.Writer,
 
 /// Init the rayload with rays for each pixel
-pub fn init(alloc: std.mem.Allocator, canvas: *const Canvas, camera: *const Camera, scene: []const Renderable, materials: []const Material) !RayLoad {
+pub fn init(alloc: std.mem.Allocator, canvas: *const Canvas, camera: *const Camera, scene: *const Scene, report: ?*std.Io.Writer) !RayLoad {
     var ret: RayLoad = undefined;
     ret.alloc = alloc;
 
@@ -34,10 +38,10 @@ pub fn init(alloc: std.mem.Allocator, canvas: *const Canvas, camera: *const Came
     ret.current_work_cursor = 0;
     //ret.work_len = 300000 / @sizeOf(Ray);
     ret.work_len = std.math.maxInt(usize);
-    ret.materials = materials;
     ret.scene = scene;
 
     ret.info_arena = .init(alloc);
+    ret.report = report;
 
     return ret;
 }
@@ -96,12 +100,12 @@ pub fn hasWork(self: *const RayLoad) bool {
 /// Update the minimum distance of each ray based on a scene element
 pub fn computeDistances(self: *RayLoad) void {
     const slice = self.rays.slice();
-    for (self.scene) |renderable| {
+    for (self.scene.objects, 0..) |renderable, ren_id| {
         const x: []const f64 = slice.items(.pos_x);
         const y: []const f64 = slice.items(.pos_y);
         const z: []const f64 = slice.items(.pos_z);
         const d: []f64 = slice.items(.min_dist);
-        const m: []usize = slice.items(.closest_mat);
+        const m: []usize = slice.items(.closest_object);
         const ts: []usize = slice.items(.total_steps);
         const sc: []usize = slice.items(.steps_closer);
 
@@ -115,14 +119,14 @@ pub fn computeDistances(self: *RayLoad) void {
             const v_ts: vector.Vusize = ts[i..][0..vector.vec_len].*;
             const v_sc: vector.Vusize = sc[i..][0..vector.vec_len].*;
 
-            if (@reduce(.And, Ray.vStopped(v_d, v_ts, v_sc)))
+            if (@reduce(.And, Ray.vStopped(v_x, v_y, v_z, v_d, v_ts, v_sc)))
                 continue;
 
             const v_newd: vector.Vf64 = renderable.object.vDistance(v_x, v_y, v_z);
 
             const v_pred = v_newd < v_d;
             v_d = @select(f64, v_pred, v_newd, v_d);
-            v_m = @select(usize, v_pred, @as(vector.Vusize, @splat(renderable.material_id)), v_m);
+            v_m = @select(usize, v_pred, @as(vector.Vusize, @splat(ren_id)), v_m);
 
             d[i..][0..vector.vec_len].* = v_d;
             m[i..][0..vector.vec_len].* = v_m;
@@ -131,7 +135,7 @@ pub fn computeDistances(self: *RayLoad) void {
 }
 
 /// Progress each ray based on the minimum distance we found, instanciate new rays or collapse results and remove rays-
-pub fn update(self: *RayLoad) !void {
+pub fn update(self: *RayLoad, io: std.Io, clock: std.Io.Clock) !void {
     // Disgusting function! TODO: make it easier to understand
     var i: usize = 0;
     while (i < self.rays.len) {
@@ -143,9 +147,12 @@ pub fn update(self: *RayLoad) !void {
         const v_d: vector.Vf64 = slice.items(.min_dist)[i..][0..vector.vec_len].*;
         const v_ts: vector.Vusize = slice.items(.total_steps)[i..][0..vector.vec_len].*;
         const v_sc: vector.Vusize = slice.items(.steps_closer)[i..][0..vector.vec_len].*;
+        const v_x: vector.Vf64 = slice.items(.pos_x)[i..][0..vector.vec_len].*;
+        const v_y: vector.Vf64 = slice.items(.pos_y)[i..][0..vector.vec_len].*;
+        const v_z: vector.Vf64 = slice.items(.pos_z)[i..][0..vector.vec_len].*;
 
-        const v_stop = Ray.vStopped(v_d, v_ts, v_sc);
-        const all_stop = @reduce(.And, v_stop); // Flags that the whole vector will be removed
+        const v_stop = Ray.vStopped(v_x, v_y, v_z, v_d, v_ts, v_sc);
+        var all_stop = true; // Flags that the whole vector will be removed
         var progress: usize = vector.vec_len;
 
         // could use VPCOMPRESSD on AVX512
@@ -162,8 +169,11 @@ pub fn update(self: *RayLoad) !void {
                 // TODO: get material info from the ray
                 // decide or not to recurse
                 // apply the color obtained from the ray to the
-                //const normal = ray.normal(self.scene);
-                _ = try ray.hit(self.info_arena.allocator(), &self.rays, self.materials);
+                const ren = self.scene.objects[ray.closest_object];
+                const normal = ren.object.normal(.{ .x = ray.pos_x, .y = ray.pos_y, .z = ray.pos_z });
+                const continued = try ray.hit(self.info_arena.allocator(), &self.rays, &ren, self.scene.materials, normal);
+                if (continued)
+                    all_stop = false;
                 if (i + vector.vec_len >= self.rays.len) {
                     self.rays.set(index, .dummy);
                 } else {
@@ -171,10 +181,12 @@ pub fn update(self: *RayLoad) !void {
                         progress = i;
                     self.rays.swapRemove(index);
                 }
+            } else {
+                all_stop = false;
             }
         }
 
-        if (i + vector.vec_len == self.rays.len and all_stop)
+        if (i + vector.vec_len == self.rays.len and all_stop) // TODO: is this still correct now that stopped vectors can reflect?
             self.rays.shrinkRetainingCapacity(self.rays.len - vector.vec_len);
 
         // We can safely advance the cursor by how many non finished rays there were first
@@ -182,9 +194,31 @@ pub fn update(self: *RayLoad) !void {
         //std.debug.print("Left: {}\n", .{self.rays.len});
     }
 
-    while (self.rays.len % vector.vec_len != 0)
-        self.rays.appendAssumeCapacity(.dummy);
+    if (self.report) |writer| {
+        // bins for counting rays of each depth
+        const now = clock.now(io).toMicroseconds();
+        var bins: [10]usize = undefined;
+        @memset(&bins, 0);
 
-    //std.debug.print("Progress\n", .{});
+        const targets = self.rays.slice().items(.target);
+        for (targets) |target| {
+            if (target == .dummy)
+                continue;
+            const depth = target.getDepth();
+            bins[depth] += 1;
+        }
+
+        try writer.print("{}, ", .{now});
+        for (bins, 0..) |bin_val, j| {
+            if (j > settings.max_reflections)
+                break;
+            try writer.printInt(bin_val, 10, .lower, .{});
+            try writer.writeAll(", ");
+        }
+        try writer.writeByte('\n');
+        try writer.flush();
+    }
+
+    std.debug.print("Progress ({})\n", .{self.rays.len});
     Ray.vProgress(&self.rays.slice());
 }

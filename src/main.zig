@@ -55,6 +55,17 @@ pub fn main(init: std.process.Init) !void {
         }
     }
 
+    // TODO: do that elsewhere
+    if (settings.preview) {
+        std.debug.print("/!\\ Running in preview mode!\n", .{});
+        settings.max_steps /= 2;
+        settings.max_reflections /= 2;
+        settings.max_steps_getting_closer = settings.max_steps * 2;
+        settings.hit_distance *= 2;
+        settings.pic_height /= 2;
+        settings.pic_width /= 2;
+    }
+
     std.debug.print("Scene path: {s}\n", .{scene_path});
 
     { // Try to create render folder
@@ -106,7 +117,7 @@ pub fn main(init: std.process.Init) !void {
         }
         std.debug.print("Done! Avg {} ms per run\n", .{@divFloor(sum, @as(i64, @intCast(settings.benchmark_it)) * 1000)});
     } else {
-        var canvas = try Canvas.init(alloc, 1000, 1000);
+        var canvas = try Canvas.init(alloc, settings.pic_width, settings.pic_height);
         defer canvas.deinit();
 
         const time = try raymarcher.render(alloc, io, scene, canvas, .{}, &skybox);

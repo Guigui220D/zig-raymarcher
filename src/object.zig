@@ -12,6 +12,7 @@ const Vf64 = @import("vector.zig").Vf64;
 pub const Object = union(enum) {
     // TODO: does the switch have an impact when called repeatedly?
     /// Obtain distance to object
+    /// Non-vectorized version which is only used for some specific, rarer operations
     pub fn distance(self: Object, pos: zlm.Vec3) f64 {
         return switch (self) {
             .primitive => |pri| pri.distanceFn(pos),
@@ -25,6 +26,17 @@ pub const Object = union(enum) {
             .primitive => |pri| pri.vDistanceFn(xs, ys, zs),
             inline else => |obj| obj.vDistance(xs, ys, zs),
         };
+    }
+
+    /// Calculates the normal of that object from a point that is (near) the surface
+    pub fn normal(self: Object, pos: zlm.Vec3) zlm.Vec3 {
+        const dist = self.distance(pos);
+
+        return zlm.Vec3.normalize(zlm.vec3(
+            self.distance(pos.add(zlm.vec3(0.01, 0, 0))) - dist,
+            self.distance(pos.add(zlm.vec3(0, 0.01, 0))) - dist,
+            self.distance(pos.add(zlm.vec3(0, 0, 0.01))) - dist,
+        ));
     }
 
     // TODO: find ways to reduce tree depth: always transform primitives, add parameters to primitives (would this actually help?)

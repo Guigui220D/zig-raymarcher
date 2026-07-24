@@ -23,22 +23,21 @@ pub fn render(alloc: std.mem.Allocator, io: std.Io, scene: Scene, canvas: Canvas
     if (canvas.width == 0 or canvas.height == 0)
         return error.canvasWrongFormat;
 
-    // TODO: do that somewhere else...
-    if (settings.preview) {
-        std.debug.print("/!\\ Running in preview mode!\n", .{});
-        settings.max_steps /= 2;
-        settings.max_reflections = 1;
-        settings.max_steps_getting_closer = settings.max_steps * 2;
-        settings.hit_distance *= 2;
-    }
-
     current_scene = scene;
     current_canvas = canvas;
     current_camera = camera;
     current_skybox = skybox;
 
+    const cwd = std.Io.Dir.cwd();
+    var file = try cwd.createFile(io, "render/report.csv", .{});
+    defer file.close(io);
+    var buf: [512]u8 = undefined;
+
+    var fwriter = file.writer(io, &buf);
+    const writer = &fwriter.interface;
+
     // Init one ray per pixel
-    var rayload: RayLoad = try .init(alloc, &canvas, &camera, scene.objects, scene.materials);
+    var rayload: RayLoad = try .init(alloc, &canvas, &camera, &scene, writer);
     defer rayload.deinit();
 
     var i: usize = 0;
@@ -53,7 +52,7 @@ pub fn render(alloc: std.mem.Allocator, io: std.Io, scene: Scene, canvas: Canvas
             rayload.computeDistances();
 
             // Progress each ray based on the distances we found (or collapse results)
-            try rayload.update();
+            try rayload.update(io, clock);
 
             i += 1;
         }
