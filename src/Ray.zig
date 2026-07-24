@@ -80,6 +80,7 @@ pub fn reflect(self: Ray, normal: zlm.Vec3, target: RayTarget) Ray {
         .dir_x = reflection.x,
         .dir_y = reflection.y,
         .dir_z = reflection.z,
+        .min_dist = settings.hit_distance * 1.01,
         .target = target,
     };
 }

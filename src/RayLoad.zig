@@ -80,7 +80,7 @@ pub fn refillFromCanvas(self: *RayLoad) !bool {
         actual_dir = actual_dir.add(self.camera.getY().scale(-direction.y));
         actual_dir = actual_dir.add(self.camera.getZ().scale(direction.z));
 
-        self.rays.appendAssumeCapacity(.initForPixel(self.camera.origin, actual_dir, x, y, self.canvas));
+        self.rays.appendAssumeCapacity(.initForPixel(self.camera.origin, actual_dir.normalize(), x, y, self.canvas));
     }
 
     while (self.rays.len % vector.vec_len != 0) // TODO: can be assumed if work_len is the right size
@@ -171,6 +171,7 @@ pub fn update(self: *RayLoad, io: std.Io, clock: std.Io.Clock) !void {
                 // apply the color obtained from the ray to the
                 const ren = self.scene.objects[ray.closest_object];
                 const normal = ren.object.normal(.{ .x = ray.pos_x, .y = ray.pos_y, .z = ray.pos_z });
+                // TODO: there is unpredictable behavior on whether or not a newly inserted reflection ray will be progressed during this iteration
                 const continued = try ray.hit(self.info_arena.allocator(), &self.rays, &ren, self.scene.materials, normal);
                 if (continued)
                     all_stop = false;
@@ -220,5 +221,7 @@ pub fn update(self: *RayLoad, io: std.Io, clock: std.Io.Clock) !void {
     }
 
     std.debug.print("Progress ({})\n", .{self.rays.len});
+    // TODO Could this be before? I don't think it would cost anything
+    // Would avoid ambiguities with added rays
     Ray.vProgress(&self.rays.slice());
 }

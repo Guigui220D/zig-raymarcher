@@ -142,6 +142,9 @@ fn readObject(alloc: std.mem.Allocator, value: *const std.json.Value) !Object {
     if (std.mem.eql(u8, "meld", type_name.string))
         ret = try readMeldObject(alloc, obj_def);
 
+    if (std.mem.eql(u8, "negate", type_name.string))
+        ret = try readNegateObject(alloc, obj_def);
+
     return ret orelse error.BadObjectJson;
 }
 
@@ -235,9 +238,7 @@ fn readTransformObject(alloc: std.mem.Allocator, object: *const std.json.ObjectM
     errdefer alloc.destroy(obj_copy);
     obj_copy.* = obj;
 
-    return .{
-        .transform = .init(obj_copy, rotate, scale, translate),
-    };
+    return .{ .transform = .init(obj_copy, rotate, scale, translate) };
 }
 
 fn readPrimitiveObject(_: std.mem.Allocator, object: *const std.json.ObjectMap) anyerror!Object {
@@ -249,9 +250,7 @@ fn readPrimitiveObject(_: std.mem.Allocator, object: *const std.json.ObjectMap) 
 
     // Read depending on type
     const primitive = Primitive.all.get(type_name.string) orelse return error.UnknownPrimitiveName;
-    return .{
-        .primitive = primitive,
-    };
+    return .{ .primitive = primitive };
 }
 
 fn readCSGObject(alloc: std.mem.Allocator, object: *const std.json.ObjectMap) anyerror!Object {
@@ -289,9 +288,7 @@ fn readCSGObject(alloc: std.mem.Allocator, object: *const std.json.ObjectMap) an
     errdefer alloc.destroy(obj2_copy);
     obj2_copy.* = obj2;
 
-    return .{
-        .csg = .init(obj1_copy, obj2_copy, csg_type.?),
-    };
+    return .{ .csg = .init(obj1_copy, obj2_copy, csg_type.?) };
 }
 
 fn readRepeatObject(alloc: std.mem.Allocator, object: *const std.json.ObjectMap) anyerror!Object {
@@ -301,14 +298,16 @@ fn readRepeatObject(alloc: std.mem.Allocator, object: *const std.json.ObjectMap)
     if (axis != .string)
         return error.BadRepeatJson;
 
-    var axis_flags: u3 = 0;
+    var repeat_x: bool = false;
+    var repeat_y: bool = false;
+    var repeat_z: bool = false;
     for (axis.string) |ax| {
-        axis_flags |= switch (ax) {
-            'x' => 0b100,
-            'y' => 0b010,
-            'z' => 0b001,
+        switch (ax) {
+            'x' => repeat_x = true,
+            'y' => repeat_y = true,
+            'z' => repeat_z = true,
             else => return error.BadRepeatJson,
-        };
+        }
     }
 
     // Get period
@@ -323,13 +322,7 @@ fn readRepeatObject(alloc: std.mem.Allocator, object: *const std.json.ObjectMap)
     errdefer alloc.destroy(obj_copy);
     obj_copy.* = obj;
 
-    return Object{
-        .repeat = .{
-            .axis = axis_flags,
-            .modulo = period_val,
-            .o = obj_copy,
-        },
-    };
+    return Object{ .repeat = .init(obj_copy, repeat_x, repeat_y, repeat_z, period_val) };
 }
 
 fn readMeldObject(alloc: std.mem.Allocator, object: *const std.json.ObjectMap) anyerror!Object {
@@ -354,13 +347,20 @@ fn readMeldObject(alloc: std.mem.Allocator, object: *const std.json.ObjectMap) a
     const meld_fac = object.get("factor") orelse return error.BadMeldJson;
     const meld_factor = try readScalar(f64, &meld_fac);
 
-    return .{
-        .meld = .{
-            .a = obj1_copy,
-            .b = obj2_copy,
-            .meld_factor = meld_factor,
-        },
-    };
+    return .{ .meld = .init(obj1_copy, obj2_copy, meld_factor) };
+}
+
+fn readNegateObject(alloc: std.mem.Allocator, object: *const std.json.ObjectMap) anyerror!Object {
+    //std.debug.print("Reading negate object...\n", .{});
+    // Get object
+    const obj_def = object.get("object") orelse return error.BadTransformJson;
+    const obj = try readObject(alloc, &obj_def);
+
+    const obj_copy = try alloc.create(Object);
+    errdefer alloc.destroy(obj_copy);
+    obj_copy.* = obj;
+
+    return Object{ .negate = .init(obj_copy) };
 }
 
 fn readScalar(FloatT: type, value: *const std.json.Value) !FloatT {

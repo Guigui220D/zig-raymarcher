@@ -26,7 +26,7 @@ pub var max_reflections: u8 = 6;
 /// Preview mode: will alter other settings
 pub var preview: bool = false;
 /// Changes what the output image will represent (see DebugMode)
-pub var debug_mode: DebugMode = .rayinfo;
+pub var debug_mode: DebugMode = .none;
 /// Enables benchmark mode, no image will be generated, some parameters
 /// will be changed and rendering will happen benchmark_it times after a warmup
 pub var benchmark: bool = false;

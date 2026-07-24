@@ -9,7 +9,11 @@ const Repeat = @This();
 /// Object being repeated
 o: *Object,
 /// Axis along which we are repeating
-axis: u3,
+axis: packed struct {
+    x: bool,
+    y: bool,
+    z: bool,
+},
 /// Period of the repetition
 modulo: f64,
 
@@ -17,7 +21,11 @@ modulo: f64,
 pub fn init(object: *Object, repeat_x: bool, repeat_y: bool, repeat_z: bool, modulo: f64) Repeat {
     return .{
         .o = object,
-        .axis = (@intFromBool(repeat_x) << 2) | (@intFromBool(repeat_y) << 1) | (@intFromBool(repeat_z) << 0),
+        .axis = .{
+            .x = repeat_x,
+            .y = repeat_y,
+            .z = repeat_z,
+        },
         .modulo = modulo,
     };
 }
@@ -26,11 +34,11 @@ pub fn init(object: *Object, repeat_x: bool, repeat_y: bool, repeat_z: bool, mod
 pub fn distance(self: Repeat, pos: zlm.Vec3) f64 {
     var temp = pos;
 
-    if (self.axis & 0b100 != 0) // x
+    if (self.axis.x)
         temp.x = repeatFunction(temp.x, self.modulo);
-    if (self.axis & 0b010 != 0) // y
+    if (self.axis.y)
         temp.y = repeatFunction(temp.y, self.modulo);
-    if (self.axis & 0b001 != 0) // z
+    if (self.axis.z)
         temp.z = repeatFunction(temp.z, self.modulo);
 
     return self.o.distance(temp);
@@ -42,11 +50,11 @@ pub fn vDistance(self: Repeat, x: vec.Vf64, y: vec.Vf64, z: vec.Vf64) vec.Vf64 {
     var ty = y;
     var tz = z;
 
-    if (self.axis & 0b100 != 0) // x
+    if (self.axis.x)
         tx = vRepeatFunction(tx, self.modulo);
-    if (self.axis & 0b010 != 0) // y
+    if (self.axis.y)
         ty = vRepeatFunction(ty, self.modulo);
-    if (self.axis & 0b001 != 0) // z
+    if (self.axis.z)
         tz = vRepeatFunction(tz, self.modulo);
 
     return self.o.vDistance(tx, ty, tz);

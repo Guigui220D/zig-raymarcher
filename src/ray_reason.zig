@@ -118,9 +118,9 @@ pub const Target = union(enum) {
                 if (mat.reflectivity != 0) {
                     var reflection = ray.reflect(normal, .{ .reflected = result_storage });
                     // Necessary to escape hitting the same thing again
-                    reflection.pos_x += reflection.dir_x * 1.1;
-                    reflection.pos_y += reflection.dir_y * 1.1;
-                    reflection.pos_z += reflection.dir_z * 1.1;
+                    reflection.pos_x += reflection.dir_x * settings.hit_distance * 1.1;
+                    reflection.pos_y += reflection.dir_y * settings.hit_distance * 1.1;
+                    reflection.pos_z += reflection.dir_z * settings.hit_distance * 1.1;
                     rays.appendAssumeCapacity(reflection); // TODO: we cannot assume
                     result_storage.expecting_reflection = true;
                 }
@@ -135,7 +135,7 @@ pub const Target = union(enum) {
                 return true;
             }
         } else {
-            self.apply(Color{ .a = 1, .r = 0, .g = 0, .b = 0 });
+            self.apply(Color{ .a = 0, .r = 0, .g = 0, .b = 1 });
             return false;
         }
     }

@@ -6,6 +6,7 @@ const Transform = @import("object/Transform.zig");
 const Csg = @import("object/Csg.zig");
 const Repeat = @import("object/Repeat.zig");
 const Meld = @import("object/Meld.zig");
+const Negate = @import("object/Negate.zig");
 const Vf64 = @import("vector.zig").Vf64;
 
 /// Object union for the scene tree
@@ -50,6 +51,8 @@ pub const Object = union(enum) {
     repeat: Repeat,
     /// Gooey meld between two objects
     meld: Meld,
+    /// Inside out object
+    negate: Negate,
 };
 
 //Guillaume Derex 2020-2026
