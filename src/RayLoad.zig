@@ -83,7 +83,7 @@ pub fn refillFromCanvas(self: *RayLoad) !bool {
         self.rays.appendAssumeCapacity(.initForPixel(self.camera.origin, actual_dir.normalize(), x, y, self.canvas));
     }
 
-    while (self.rays.len % vector.vec_len != 0) // TODO: can be assumed if work_len is the right size
+    while (self.rays.len % settings.vec_len != 0) // TODO: can be assumed if work_len is the right size
         self.rays.appendAssumeCapacity(.dummy);
 
     self.current_work_cursor += self.work_len;
@@ -105,19 +105,19 @@ pub fn computeDistances(self: *RayLoad) void {
         const y: []const f64 = slice.items(.pos_y);
         const z: []const f64 = slice.items(.pos_z);
         const d: []f64 = slice.items(.min_dist);
-        const m: []usize = slice.items(.closest_object);
-        const ts: []usize = slice.items(.total_steps);
-        const sc: []usize = slice.items(.steps_closer);
+        const m: []u8 = slice.items(.closest_object);
+        const ts: []u16 = slice.items(.total_steps);
+        const sc: []u16 = slice.items(.steps_closer);
 
         var i: usize = 0;
-        while (i < x.len) : (i += vector.vec_len) {
-            const v_x: vector.Vf64 = x[i..][0..vector.vec_len].*;
-            const v_y: vector.Vf64 = y[i..][0..vector.vec_len].*;
-            const v_z: vector.Vf64 = z[i..][0..vector.vec_len].*;
-            var v_d: vector.Vf64 = d[i..][0..vector.vec_len].*;
-            var v_m: vector.Vusize = m[i..][0..vector.vec_len].*;
-            const v_ts: vector.Vusize = ts[i..][0..vector.vec_len].*;
-            const v_sc: vector.Vusize = sc[i..][0..vector.vec_len].*;
+        while (i < x.len) : (i += settings.vec_len) {
+            const v_x: vector.Vf64 = x[i..][0..settings.vec_len].*;
+            const v_y: vector.Vf64 = y[i..][0..settings.vec_len].*;
+            const v_z: vector.Vf64 = z[i..][0..settings.vec_len].*;
+            var v_d: vector.Vf64 = d[i..][0..settings.vec_len].*;
+            var v_m: vector.Vu8 = m[i..][0..settings.vec_len].*;
+            const v_ts: vector.Vu16 = ts[i..][0..settings.vec_len].*;
+            const v_sc: vector.Vu16 = sc[i..][0..settings.vec_len].*;
 
             if (@reduce(.And, Ray.vStopped(v_x, v_y, v_z, v_d, v_ts, v_sc)))
                 continue;
@@ -126,10 +126,10 @@ pub fn computeDistances(self: *RayLoad) void {
 
             const v_pred = v_newd < v_d;
             v_d = @select(f64, v_pred, v_newd, v_d);
-            v_m = @select(usize, v_pred, @as(vector.Vusize, @splat(ren_id)), v_m);
+            v_m = @select(u8, v_pred, @as(vector.Vu8, @splat(@truncate(ren_id))), v_m);
 
-            d[i..][0..vector.vec_len].* = v_d;
-            m[i..][0..vector.vec_len].* = v_m;
+            d[i..][0..settings.vec_len].* = v_d;
+            m[i..][0..settings.vec_len].* = v_m;
         }
     }
 }
@@ -140,26 +140,26 @@ pub fn update(self: *RayLoad, io: std.Io, clock: std.Io.Clock) !void {
     var i: usize = 0;
     while (i < self.rays.len) {
         // Make sure we can fill vectors
-        while (i + vector.vec_len > self.rays.len)
+        while (i + settings.vec_len > self.rays.len)
             self.rays.appendAssumeCapacity(.dummy);
 
         const slice = self.rays.slice();
-        const v_d: vector.Vf64 = slice.items(.min_dist)[i..][0..vector.vec_len].*;
-        const v_ts: vector.Vusize = slice.items(.total_steps)[i..][0..vector.vec_len].*;
-        const v_sc: vector.Vusize = slice.items(.steps_closer)[i..][0..vector.vec_len].*;
-        const v_x: vector.Vf64 = slice.items(.pos_x)[i..][0..vector.vec_len].*;
-        const v_y: vector.Vf64 = slice.items(.pos_y)[i..][0..vector.vec_len].*;
-        const v_z: vector.Vf64 = slice.items(.pos_z)[i..][0..vector.vec_len].*;
+        const v_d: vector.Vf64 = slice.items(.min_dist)[i..][0..settings.vec_len].*;
+        const v_ts: vector.Vu16 = slice.items(.total_steps)[i..][0..settings.vec_len].*;
+        const v_sc: vector.Vu16 = slice.items(.steps_closer)[i..][0..settings.vec_len].*;
+        const v_x: vector.Vf64 = slice.items(.pos_x)[i..][0..settings.vec_len].*;
+        const v_y: vector.Vf64 = slice.items(.pos_y)[i..][0..settings.vec_len].*;
+        const v_z: vector.Vf64 = slice.items(.pos_z)[i..][0..settings.vec_len].*;
 
         const v_stop = Ray.vStopped(v_x, v_y, v_z, v_d, v_ts, v_sc);
         var all_stop = true; // Flags that the whole vector will be removed
-        var progress: usize = vector.vec_len;
+        var progress: usize = settings.vec_len;
 
         // could use VPCOMPRESSD on AVX512
         // For each stopped ray, apply results
         // Not great!!! we are checking some values several times
         // TODO: can we do that without an inline loop?
-        inline for (0..vector.vec_len) |j| {
+        inline for (0..settings.vec_len) |j| {
             if (v_stop[j]) {
                 const index = j + i;
                 // TODO: we could do it several time until we get a non finished vector
@@ -175,7 +175,7 @@ pub fn update(self: *RayLoad, io: std.Io, clock: std.Io.Clock) !void {
                 const continued = try ray.hit(self.info_arena.allocator(), &self.rays, &ren, self.scene.materials, normal);
                 if (continued)
                     all_stop = false;
-                if (i + vector.vec_len >= self.rays.len) {
+                if (i + settings.vec_len >= self.rays.len) {
                     self.rays.set(index, .dummy);
                 } else {
                     if (i < progress)
@@ -187,8 +187,8 @@ pub fn update(self: *RayLoad, io: std.Io, clock: std.Io.Clock) !void {
             }
         }
 
-        if (i + vector.vec_len == self.rays.len and all_stop) // TODO: is this still correct now that stopped vectors can reflect?
-            self.rays.shrinkRetainingCapacity(self.rays.len - vector.vec_len);
+        if (i + settings.vec_len == self.rays.len and all_stop) // TODO: is this still correct now that stopped vectors can reflect?
+            self.rays.shrinkRetainingCapacity(self.rays.len - settings.vec_len);
 
         // We can safely advance the cursor by how many non finished rays there were first
         i += progress;
@@ -211,7 +211,7 @@ pub fn update(self: *RayLoad, io: std.Io, clock: std.Io.Clock) !void {
 
         try writer.print("{}, ", .{now});
         for (bins, 0..) |bin_val, j| {
-            if (j > settings.max_reflections)
+            if (j > settings.max_recursions)
                 break;
             try writer.printInt(bin_val, 10, .lower, .{});
             try writer.writeAll(", ");
@@ -220,7 +220,7 @@ pub fn update(self: *RayLoad, io: std.Io, clock: std.Io.Clock) !void {
         try writer.flush();
     }
 
-    std.debug.print("Progress ({})\n", .{self.rays.len});
+    //std.debug.print("Progress ({})\n", .{self.rays.len});
     // TODO Could this be before? I don't think it would cost anything
     // Would avoid ambiguities with added rays
     Ray.vProgress(&self.rays.slice());

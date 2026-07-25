@@ -169,7 +169,7 @@ pub const Target = union(enum) {
     pub fn getDepth(self: Target) u8 {
         return switch (self) {
             .dummy => 0,
-            .pixel => settings.max_reflections,
+            .pixel => settings.max_recursions,
             .reflected => |sto| sto.max_bounces,
             .light_fetch => |sto| sto.max_bounces,
         };

@@ -42,11 +42,11 @@ dir_z: f64,
 /// Minimum distance found in the current step
 min_dist: f64 = std.math.floatMax(f64),
 /// Renderable index of the minimum distance found
-closest_object: usize = 0,
+closest_object: u8 = 0,
 /// Number of steps forward achieved
-total_steps: usize = 0,
+total_steps: u16 = 0,
 /// Number steps for which we have been getting closer to the scene
-steps_closer: usize = 0,
+steps_closer: u16 = 0,
 /// Metadata of the ray (what are throwing a ray for?)
 target: RayTarget,
 
@@ -131,31 +131,31 @@ pub fn vProgress(slice: *const std.MultiArrayList(Ray).Slice) void {
     const md_s = slice.items(.min_dist);
 
     var i: usize = 0;
-    while (i < slice.len) : (i += vec.vec_len) {
-        var xp: vec.Vf64 = xp_s[i..][0..vec.vec_len].*;
-        var yp: vec.Vf64 = yp_s[i..][0..vec.vec_len].*;
-        var zp: vec.Vf64 = zp_s[i..][0..vec.vec_len].*;
-        const xd: vec.Vf64 = xd_s[i..][0..vec.vec_len].*;
-        const yd: vec.Vf64 = yd_s[i..][0..vec.vec_len].*;
-        const zd: vec.Vf64 = zd_s[i..][0..vec.vec_len].*;
-        var ts: vec.Vusize = ts_s[i..][0..vec.vec_len].*;
-        var sc: vec.Vusize = sc_s[i..][0..vec.vec_len].*;
-        const md: vec.Vf64 = md_s[i..][0..vec.vec_len].*;
+    while (i < slice.len) : (i += settings.vec_len) {
+        var xp: vec.Vf64 = xp_s[i..][0..settings.vec_len].*;
+        var yp: vec.Vf64 = yp_s[i..][0..settings.vec_len].*;
+        var zp: vec.Vf64 = zp_s[i..][0..settings.vec_len].*;
+        const xd: vec.Vf64 = xd_s[i..][0..settings.vec_len].*;
+        const yd: vec.Vf64 = yd_s[i..][0..settings.vec_len].*;
+        const zd: vec.Vf64 = zd_s[i..][0..settings.vec_len].*;
+        var ts: vec.Vu16 = ts_s[i..][0..settings.vec_len].*;
+        var sc: vec.Vu16 = sc_s[i..][0..settings.vec_len].*;
+        const md: vec.Vf64 = md_s[i..][0..settings.vec_len].*;
 
         xp += xd * md;
         yp += yd * md;
         zp += zd * md;
-        ts += @as(vec.Vusize, @splat(1));
-        sc += @as(vec.Vusize, @splat(1));
+        ts += @as(vec.Vu16, @splat(1));
+        sc += @as(vec.Vu16, @splat(1));
 
-        xp_s[i..][0..vec.vec_len].* = xp;
-        yp_s[i..][0..vec.vec_len].* = yp;
-        zp_s[i..][0..vec.vec_len].* = zp;
-        xd_s[i..][0..vec.vec_len].* = xd;
-        yd_s[i..][0..vec.vec_len].* = yd;
-        zd_s[i..][0..vec.vec_len].* = zd;
-        ts_s[i..][0..vec.vec_len].* = ts;
-        sc_s[i..][0..vec.vec_len].* = sc;
+        xp_s[i..][0..settings.vec_len].* = xp;
+        yp_s[i..][0..settings.vec_len].* = yp;
+        zp_s[i..][0..settings.vec_len].* = zp;
+        xd_s[i..][0..settings.vec_len].* = xd;
+        yd_s[i..][0..settings.vec_len].* = yd;
+        zd_s[i..][0..settings.vec_len].* = zd;
+        ts_s[i..][0..settings.vec_len].* = ts;
+        sc_s[i..][0..settings.vec_len].* = sc;
     }
 }
 

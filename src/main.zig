@@ -1,7 +1,6 @@
 const std = @import("std");
 const zlm = @import("zlm").as(f64);
 
-//const scene_loader = @import("scene_loader.zig");
 const scene_loader = @import("scene_loader.zig");
 const raymarcher = @import("raymarcher.zig");
 const Object = @import("object.zig").Object;
@@ -37,6 +36,7 @@ pub fn main(init: std.process.Init) !void {
 
     var scene_path: []const u8 = "scenes/default_scene.json";
 
+    // TODO: add an argument parsing library
     { // Check arguments
         var first = true;
         var it = init.minimal.args.iterate();
@@ -59,12 +59,14 @@ pub fn main(init: std.process.Init) !void {
     if (settings.preview) {
         std.debug.print("/!\\ Running in preview mode!\n", .{});
         settings.max_steps /= 2;
-        settings.max_reflections /= 2;
+        settings.max_recursions /= 2;
         settings.max_steps_getting_closer = settings.max_steps * 2;
         settings.hit_distance *= 2;
         settings.pic_height /= 2;
         settings.pic_width /= 2;
     }
+
+    settings.reportSettings();
 
     std.debug.print("Scene path: {s}\n", .{scene_path});
 
@@ -102,6 +104,8 @@ pub fn main(init: std.process.Init) !void {
 
     std.debug.print("Rendering frame...\n", .{});
 
+    // TODO: add progress bar
+
     if (settings.benchmark) {
         var canvas = try Canvas.init(alloc, 200, 200);
         defer canvas.deinit();
@@ -126,6 +130,8 @@ pub fn main(init: std.process.Init) !void {
         canvas.adjustColors();
 
         std.debug.print("Saving...\n", .{});
+        // TODO: by default, include date in file output name
+        // TODO: make a text file with metadata on the picture? settings, performance etc
         try image_save.saveAs(alloc, io, &canvas, "render/frame.png");
         std.debug.print("Frame saved to render/frame.png.\n", .{});
     }

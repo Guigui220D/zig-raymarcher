@@ -1,4 +1,6 @@
+//! General settings for render that may affect performance and image quality
 // TODO: make this an object and add current_settings and default_settings
+const std = @import("std");
 
 /// Image rendering debug modes
 pub const DebugMode = enum {
@@ -22,7 +24,7 @@ pub var max_steps: usize = 1024;
 /// Larger value because we don't want to give up as easily when theres probably somehting
 pub var max_steps_getting_closer: usize = 2048;
 /// Number of recursive reflections a ray can have
-pub var max_reflections: u8 = 6;
+pub var max_recursions: u8 = 6;
 /// Preview mode: will alter other settings
 pub var preview: bool = false;
 /// Changes what the output image will represent (see DebugMode)
@@ -34,10 +36,25 @@ pub var benchmark: bool = false;
 pub var benchmark_it: usize = 5;
 /// Output info of the rays of a rayload at each update
 /// Slows down everything!!! only for analysis
-pub var report_rayload_composition = true;
+pub var report_rayload_composition = false;
 /// Width of the image output in pixels (doesn't apply when benchmarking)
 pub var pic_width: usize = 1000;
 /// Height of the image output in pixels (doesn't apply when benchmarking)
 pub var pic_height: usize = 1000;
 /// Max x,y,z coordinates until a ray is given up on
-pub var scene_boundaries: f32 = 100;
+pub var scene_boundaries: f32 = 100; // TODO: turn that into max distance
+// Benchmarks showed that this works best with u16
+/// Vector length used for all vectorized operations
+pub const vec_len = std.simd.suggestVectorLength(u16) orelse 8;
+
+/// Dump to the logs the important settings
+pub fn reportSettings() void {
+    std.debug.print("Settings:\n", .{});
+    std.debug.print("- Vector length: {}\n", .{vec_len});
+    std.debug.print("- Hit distance:{}\n", .{hit_distance});
+    std.debug.print("- Max ray steps: {} (getting closer: {})\n", .{ max_steps, max_steps_getting_closer });
+    std.debug.print("- Max recursions: {}\n", .{max_recursions});
+    std.debug.print("- Max ray distance: {}\n", .{scene_boundaries});
+    // TODO: indicate if a file will be outputted, where, and what format
+    std.debug.print("- Output format (width, height): {},{}\n", .{ pic_width, pic_height });
+}
