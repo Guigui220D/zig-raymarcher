@@ -11,7 +11,6 @@ const Ray = @import("Ray.zig");
 /// This struct stores all the needed intermediary results for the compute of a pixel
 /// The resulting color will be sent to the target
 pub const ResultStorage = struct {
-    // TODO: encode the fact some rays don't need reflection or refraction (depending on the mat)
     /// Result of the initial ray (color of the material)
     material: Material,
     /// Results of the reflection ray. Null if it wasn't obtained yet
@@ -55,6 +54,7 @@ pub const ResultStorage = struct {
     /// Computes the color from the obtained data
     /// Can only be called if isDone is true
     fn computeColor(self: ResultStorage) Color {
+        // TODO: parity
         return Color.mix(self.material.diffuse, self.reflected orelse .{}, 1 - self.material.reflectivity);
     }
 };
@@ -115,7 +115,7 @@ pub const Target = union(enum) {
                 errdefer alloc.destroy(result_storage);
                 result_storage.* = ResultStorage.init(mat, self, bounces_left - 1);
 
-                // TODO Send reflection only when material requires it
+                // TODO: do not forget to change when new reflectivity
                 if (mat.reflectivity != 0) {
                     var reflection = ray.reflect(normal, .{ .reflected = result_storage });
                     // Necessary to escape hitting the same thing again

@@ -199,8 +199,6 @@ fn readTransformObject(alloc: std.mem.Allocator, object: *const std.json.ObjectM
     var scale: zlm.Vec3 = .one;
     var translate: zlm.Vec3 = .zero;
 
-    // TODO: support integers
-
     // Translation
     if (object.get("x")) |x|
         translate.x = try readScalar(Ft, &x);

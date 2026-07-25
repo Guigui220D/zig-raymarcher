@@ -19,7 +19,7 @@ var current_canvas: Canvas = undefined;
 var current_camera: Camera = .{};
 var current_skybox: *const Skybox = undefined;
 
-pub fn render(alloc: std.mem.Allocator, io: std.Io, scene: Scene, canvas: Canvas, camera: Camera, skybox: *const Skybox) !i64 {
+pub fn render(alloc: std.mem.Allocator, io: std.Io, scene: Scene, canvas: Canvas, camera: Camera, skybox: *const Skybox, progress_node: std.Progress.Node) !i64 {
     if (canvas.width == 0 or canvas.height == 0)
         return error.canvasWrongFormat;
 
@@ -40,6 +40,10 @@ pub fn render(alloc: std.mem.Allocator, io: std.Io, scene: Scene, canvas: Canvas
     var rayload: RayLoad = try .init(alloc, &canvas, &camera, &scene, writer);
     defer rayload.deinit();
 
+    var total_rays = rayload.rays.len;
+    progress_node.setCompletedItems(0);
+    progress_node.setEstimatedTotalItems(0);
+
     var i: usize = 0;
 
     const clock: std.Io.Clock = .real;
@@ -54,9 +58,18 @@ pub fn render(alloc: std.mem.Allocator, io: std.Io, scene: Scene, canvas: Canvas
             // Progress each ray based on the distances we found (or collapse results)
             try rayload.update(io, clock);
 
+            const current_ray_count = rayload.rays.len;
+            if (current_ray_count > total_rays) {
+                total_rays = current_ray_count;
+                progress_node.increaseEstimatedTotalItems(total_rays);
+            }
+            progress_node.setCompletedItems(total_rays - current_ray_count);
+
             i += 1;
         }
     }
+
+    progress_node.end();
 
     const dur = std.Io.Timestamp.untilNow(start, io, clock);
 

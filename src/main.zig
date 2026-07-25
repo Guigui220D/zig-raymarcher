@@ -29,8 +29,6 @@ pub const tracy_options: tracy.Options = .{
     .default_callstack_depth = 0,
 };
 
-// TODO: use logger
-
 pub fn main(init: std.process.Init) !void {
     const alloc = init.gpa;
     const io = init.io;
@@ -67,6 +65,7 @@ pub fn main(init: std.process.Init) !void {
         settings.pic_width /= 2;
     }
 
+    const node = std.Progress.start(io, .{ .root_name = "render", .disable_printing = false });
     settings.reportSettings();
 
     std.debug.print("Scene path: {s}\n", .{scene_path});
@@ -93,11 +92,8 @@ pub fn main(init: std.process.Init) !void {
     //  threads count, override iterations
 
     // TODO: better prints (not debug)
-    // TODO: matrix transforms
-
     var cam = Camera{};
 
-    //var timer = try std.time.Timer.start();
     const campos = zlm.Vec3.zero;
     const camdir = zlm.vec3(0, -0.5, 1).sub(campos);
     cam.origin = campos;
@@ -105,27 +101,25 @@ pub fn main(init: std.process.Init) !void {
 
     std.debug.print("Rendering frame...\n", .{});
 
-    // TODO: add progress bar
-
     if (settings.benchmark) {
         var canvas = try Canvas.init(alloc, 200, 200);
         defer canvas.deinit();
 
         std.debug.print("Benchmarking!\nWarmup...\n", .{});
         // Warmup run
-        _ = try raymarcher.render(alloc, io, scene, canvas, .{}, &skybox);
+        _ = try raymarcher.render(alloc, io, scene, canvas, .{}, &skybox, node);
 
         std.debug.print("Doing {} runs...\n", .{settings.benchmark_it});
         var sum: i64 = 0;
         for (0..settings.benchmark_it) |_| {
-            sum += try raymarcher.render(alloc, io, scene, canvas, .{}, &skybox);
+            sum += try raymarcher.render(alloc, io, scene, canvas, .{}, &skybox, node);
         }
         std.debug.print("Done! Avg {} ms per run\n", .{@divFloor(sum, @as(i64, @intCast(settings.benchmark_it)) * 1000)});
     } else {
         var canvas = try Canvas.init(alloc, settings.pic_width, settings.pic_height);
         defer canvas.deinit();
 
-        const time = try raymarcher.render(alloc, io, scene, canvas, .{}, &skybox);
+        const time = try raymarcher.render(alloc, io, scene, canvas, .{}, &skybox, node);
 
         std.debug.print("Done in {} ms\n", .{@divFloor(time, 1000)});
         canvas.adjustColors();
