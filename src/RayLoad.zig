@@ -3,7 +3,7 @@
 // TODO: this class actually does many things. It's pretty much the renderer. Does it make
 // sense for it to have this class name?
 const std = @import("std");
-const zlm = @import("zlm").as(f64);
+const zlm = @import("zlm").as(Ft);
 
 const Ray = @import("Ray.zig");
 const Canvas = @import("Canvas.zig");
@@ -12,6 +12,7 @@ const Camera = @import("Camera.zig");
 const CacheMindfulIterator = @import("cache_mindful.zig").Iterator(Ray);
 const vector = @import("vector.zig");
 const settings = @import("settings.zig");
+const Ft = settings.Ft;
 
 const RayLoad = @This();
 
@@ -55,8 +56,8 @@ pub fn refillFromCanvas(self: *RayLoad) !bool {
     if (self.current_work_cursor >= self.canvas.width * self.canvas.height)
         return false;
 
-    const fwidth: f64 = @floatFromInt(self.canvas.width);
-    const fheight: f64 = @floatFromInt(self.canvas.height);
+    const fwidth: Ft = @floatFromInt(self.canvas.width);
+    const fheight: Ft = @floatFromInt(self.canvas.height);
 
     try self.rays.ensureUnusedCapacity(self.alloc, self.canvas.height * self.canvas.width * 2);
 
@@ -67,11 +68,11 @@ pub fn refillFromCanvas(self: *RayLoad) !bool {
         const x = i % self.canvas.width;
         const y = i / self.canvas.width;
 
-        const y_f: f64 = @floatFromInt(y);
-        const ry: f64 = (y_f - fheight / 2.0) / fwidth;
+        const y_f: Ft = @floatFromInt(y);
+        const ry: Ft = (y_f - fheight / 2.0) / fwidth;
 
-        const x_f: f64 = @floatFromInt(x);
-        const rx: f64 = (x_f - fwidth / 2.0) / fwidth;
+        const x_f: Ft = @floatFromInt(x);
+        const rx: Ft = (x_f - fwidth / 2.0) / fwidth;
 
         // TODO: could be multithreaded
         const direction = zlm.vec3(rx, ry, 1 / self.camera.fov_modifier);
@@ -101,20 +102,20 @@ pub fn hasWork(self: *const RayLoad) bool {
 pub fn computeDistances(self: *RayLoad) void {
     const slice = self.rays.slice();
     for (self.scene.objects, 0..) |renderable, ren_id| {
-        const x: []const f64 = slice.items(.pos_x);
-        const y: []const f64 = slice.items(.pos_y);
-        const z: []const f64 = slice.items(.pos_z);
-        const d: []f64 = slice.items(.min_dist);
+        const x: []const Ft = slice.items(.pos_x);
+        const y: []const Ft = slice.items(.pos_y);
+        const z: []const Ft = slice.items(.pos_z);
+        const d: []Ft = slice.items(.min_dist);
         const m: []u8 = slice.items(.closest_object);
         const ts: []u16 = slice.items(.total_steps);
         const sc: []u16 = slice.items(.steps_closer);
 
         var i: usize = 0;
         while (i < x.len) : (i += settings.vec_len) {
-            const v_x: vector.Vf64 = x[i..][0..settings.vec_len].*;
-            const v_y: vector.Vf64 = y[i..][0..settings.vec_len].*;
-            const v_z: vector.Vf64 = z[i..][0..settings.vec_len].*;
-            var v_d: vector.Vf64 = d[i..][0..settings.vec_len].*;
+            const v_x: vector.VFt = x[i..][0..settings.vec_len].*;
+            const v_y: vector.VFt = y[i..][0..settings.vec_len].*;
+            const v_z: vector.VFt = z[i..][0..settings.vec_len].*;
+            var v_d: vector.VFt = d[i..][0..settings.vec_len].*;
             var v_m: vector.Vu8 = m[i..][0..settings.vec_len].*;
             const v_ts: vector.Vu16 = ts[i..][0..settings.vec_len].*;
             const v_sc: vector.Vu16 = sc[i..][0..settings.vec_len].*;
@@ -122,10 +123,10 @@ pub fn computeDistances(self: *RayLoad) void {
             if (@reduce(.And, Ray.vStopped(v_x, v_y, v_z, v_d, v_ts, v_sc)))
                 continue;
 
-            const v_newd: vector.Vf64 = renderable.object.vDistance(v_x, v_y, v_z);
+            const v_newd: vector.VFt = renderable.object.vDistance(v_x, v_y, v_z);
 
             const v_pred = v_newd < v_d;
-            v_d = @select(f64, v_pred, v_newd, v_d);
+            v_d = @select(Ft, v_pred, v_newd, v_d);
             v_m = @select(u8, v_pred, @as(vector.Vu8, @splat(@truncate(ren_id))), v_m);
 
             d[i..][0..settings.vec_len].* = v_d;
@@ -144,12 +145,12 @@ pub fn update(self: *RayLoad, io: std.Io, clock: std.Io.Clock) !void {
             self.rays.appendAssumeCapacity(.dummy);
 
         const slice = self.rays.slice();
-        const v_d: vector.Vf64 = slice.items(.min_dist)[i..][0..settings.vec_len].*;
+        const v_d: vector.VFt = slice.items(.min_dist)[i..][0..settings.vec_len].*;
         const v_ts: vector.Vu16 = slice.items(.total_steps)[i..][0..settings.vec_len].*;
         const v_sc: vector.Vu16 = slice.items(.steps_closer)[i..][0..settings.vec_len].*;
-        const v_x: vector.Vf64 = slice.items(.pos_x)[i..][0..settings.vec_len].*;
-        const v_y: vector.Vf64 = slice.items(.pos_y)[i..][0..settings.vec_len].*;
-        const v_z: vector.Vf64 = slice.items(.pos_z)[i..][0..settings.vec_len].*;
+        const v_x: vector.VFt = slice.items(.pos_x)[i..][0..settings.vec_len].*;
+        const v_y: vector.VFt = slice.items(.pos_y)[i..][0..settings.vec_len].*;
+        const v_z: vector.VFt = slice.items(.pos_z)[i..][0..settings.vec_len].*;
 
         const v_stop = Ray.vStopped(v_x, v_y, v_z, v_d, v_ts, v_sc);
         var all_stop = true; // Flags that the whole vector will be removed

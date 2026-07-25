@@ -1,7 +1,8 @@
 /// Vector types
-const vec_len = @import("settings.zig").vec_len;
+const settings = @import("settings.zig");
+const vec_len = settings.vec_len;
 
-pub const Vf64 = @Vector(vec_len, f64);
+pub const VFt = @Vector(vec_len, settings.Ft);
 pub const Vusize = @Vector(vec_len, usize);
 pub const Vbool = @Vector(vec_len, bool);
 pub const Vu16 = @Vector(vec_len, u16);

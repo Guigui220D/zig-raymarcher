@@ -1,8 +1,9 @@
 //! Negation of signed distance fields (inside out)
 const std = @import("std");
-const zlm = @import("zlm").as(f64);
+const zlm = @import("zlm").as(Ft);
 const Object = @import("../object.zig").Object;
 const vec = @import("../vector.zig");
+const Ft = @import("../settings.zig").Ft;
 
 const Negate = @This();
 
@@ -17,12 +18,12 @@ pub fn init(object: *Object) Negate {
 }
 
 /// Calculates the distance from this object
-pub fn distance(self: Negate, pos: zlm.Vec3) f64 {
+pub fn distance(self: Negate, pos: zlm.Vec3) Ft {
     return -self.o.distance(pos);
 }
 
 /// Calculates the distance from this object (vectorized)
-pub fn vDistance(self: Negate, x: vec.Vf64, y: vec.Vf64, z: vec.Vf64) vec.Vf64 {
+pub fn vDistance(self: Negate, x: vec.VFt, y: vec.VFt, z: vec.VFt) vec.VFt {
     return -self.o.vDistance(x, y, z);
 }
 

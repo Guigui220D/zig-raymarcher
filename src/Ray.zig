@@ -1,8 +1,9 @@
 const std = @import("std");
-const zlm = @import("zlm").as(f64);
+const zlm = @import("zlm").as(Ft);
 
 const Canvas = @import("Canvas.zig");
 const settings = @import("settings.zig");
+const Ft = settings.Ft;
 const Color = @import("color.zig").Color;
 const csscolorparser = @import("csscolorparser");
 const vec = @import("vector.zig");
@@ -28,19 +29,19 @@ pub const dummy = Ray{
 };
 
 /// Current position of the ray (x)
-pos_x: f64,
+pos_x: Ft,
 /// Current position of the ray (y)
-pos_y: f64,
+pos_y: Ft,
 /// Current position of the ray (z)
-pos_z: f64,
+pos_z: Ft,
 /// Current direction of the ray (x)
-dir_x: f64,
+dir_x: Ft,
 /// Current direction of the ray (y)
-dir_y: f64,
+dir_y: Ft,
 /// Current direction of the ray (z)
-dir_z: f64,
+dir_z: Ft,
 /// Minimum distance found in the current step
-min_dist: f64 = std.math.floatMax(f64),
+min_dist: Ft = std.math.floatMax(Ft),
 /// Renderable index of the minimum distance found
 closest_object: u8 = 0,
 /// Number of steps forward achieved
@@ -92,11 +93,11 @@ pub fn stopped(self: Ray) bool {
 }
 
 /// Returns true if the ray is done working (vectorized)
-pub fn vStopped(x: vec.Vf64, y: vec.Vf64, z: vec.Vf64, min_dist: vec.Vf64, total_steps: vec.Vusize, steps_closer: vec.Vusize) vec.Vbool {
-    const oob = (x > @as(vec.Vf64, @splat(settings.scene_boundaries))) |
-        (y > @as(vec.Vf64, @splat(settings.scene_boundaries))) |
-        (z > @as(vec.Vf64, @splat(settings.scene_boundaries)));
-    return (min_dist < @as(vec.Vf64, @splat(settings.hit_distance))) |
+pub fn vStopped(x: vec.VFt, y: vec.VFt, z: vec.VFt, min_dist: vec.VFt, total_steps: vec.Vusize, steps_closer: vec.Vusize) vec.Vbool {
+    const oob = (x > @as(vec.VFt, @splat(settings.scene_boundaries))) |
+        (y > @as(vec.VFt, @splat(settings.scene_boundaries))) |
+        (z > @as(vec.VFt, @splat(settings.scene_boundaries)));
+    return (min_dist < @as(vec.VFt, @splat(settings.hit_distance))) |
         (total_steps >= @as(vec.Vusize, @splat(settings.max_steps))) |
         (steps_closer > @as(vec.Vusize, @splat(settings.max_steps_getting_closer))) |
         oob;
@@ -132,15 +133,15 @@ pub fn vProgress(slice: *const std.MultiArrayList(Ray).Slice) void {
 
     var i: usize = 0;
     while (i < slice.len) : (i += settings.vec_len) {
-        var xp: vec.Vf64 = xp_s[i..][0..settings.vec_len].*;
-        var yp: vec.Vf64 = yp_s[i..][0..settings.vec_len].*;
-        var zp: vec.Vf64 = zp_s[i..][0..settings.vec_len].*;
-        const xd: vec.Vf64 = xd_s[i..][0..settings.vec_len].*;
-        const yd: vec.Vf64 = yd_s[i..][0..settings.vec_len].*;
-        const zd: vec.Vf64 = zd_s[i..][0..settings.vec_len].*;
+        var xp: vec.VFt = xp_s[i..][0..settings.vec_len].*;
+        var yp: vec.VFt = yp_s[i..][0..settings.vec_len].*;
+        var zp: vec.VFt = zp_s[i..][0..settings.vec_len].*;
+        const xd: vec.VFt = xd_s[i..][0..settings.vec_len].*;
+        const yd: vec.VFt = yd_s[i..][0..settings.vec_len].*;
+        const zd: vec.VFt = zd_s[i..][0..settings.vec_len].*;
         var ts: vec.Vu16 = ts_s[i..][0..settings.vec_len].*;
         var sc: vec.Vu16 = sc_s[i..][0..settings.vec_len].*;
-        const md: vec.Vf64 = md_s[i..][0..settings.vec_len].*;
+        const md: vec.VFt = md_s[i..][0..settings.vec_len].*;
 
         xp += xd * md;
         yp += yd * md;

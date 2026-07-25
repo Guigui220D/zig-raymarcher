@@ -1,8 +1,9 @@
 //! Object made of two objects merged in a gooey way
 const std = @import("std");
-const zlm = @import("zlm").as(f64);
+const zlm = @import("zlm").as(Ft);
 const Object = @import("../object.zig").Object;
 const vec = @import("../vector.zig");
+const Ft = @import("../settings.zig").Ft;
 
 const Meld = @This();
 
@@ -12,10 +13,10 @@ a: *Object,
 b: *Object,
 /// How much we are melding the two elements
 /// Lower is more deformation and at longer distances
-meld_factor: f64,
+meld_factor: Ft,
 
 /// Inits a meld object
-pub fn init(objectA: *Object, objectB: *Object, factor: f64) Meld {
+pub fn init(objectA: *Object, objectB: *Object, factor: Ft) Meld {
     return .{
         .a = objectA,
         .b = objectB,
@@ -24,7 +25,7 @@ pub fn init(objectA: *Object, objectB: *Object, factor: f64) Meld {
 }
 
 /// Calculates the distance from this object
-pub fn distance(self: Meld, pos: zlm.Vec3) f64 {
+pub fn distance(self: Meld, pos: zlm.Vec3) Ft {
     const a = self.a.distance(pos);
     const b = self.b.distance(pos);
 
@@ -32,7 +33,7 @@ pub fn distance(self: Meld, pos: zlm.Vec3) f64 {
 }
 
 /// Calculates the distance from this object (vectorized)
-pub fn vDistance(self: Meld, x: vec.Vf64, y: vec.Vf64, z: vec.Vf64) vec.Vf64 {
+pub fn vDistance(self: Meld, x: vec.VFt, y: vec.VFt, z: vec.VFt) vec.VFt {
     const a = self.a.vDistance(x, y, z);
     const b = self.b.vDistance(x, y, z);
 
@@ -40,29 +41,29 @@ pub fn vDistance(self: Meld, x: vec.Vf64, y: vec.Vf64, z: vec.Vf64) vec.Vf64 {
 }
 
 /// Function that acts like modulo but centered
-inline fn repeatFunction(val: f64, mod: f64) f64 {
+inline fn repeatFunction(val: Ft, mod: Ft) Ft {
     return @mod(val + mod / 2, mod) - mod / 2;
 }
 
 /// Softmax function that the meld is based on
-inline fn softmax(a: f64, b: f64, k: f64) f64 {
+inline fn softmax(a: Ft, b: Ft, k: Ft) Ft {
     const m = @max(a, b);
     return m + @log(@exp(k * (a - m)) + @exp(k * (b - m))) / k;
 }
 
 /// Softmin function using softmax
-inline fn softmin(a: f64, b: f64, k: f64) f64 {
+inline fn softmin(a: Ft, b: Ft, k: Ft) Ft {
     return -softmax(-a, -b, k);
 }
 
 /// Softmax function that the meld is based on
-inline fn vSoftmax(a: vec.Vf64, b: vec.Vf64, k: f64) vec.Vf64 {
+inline fn vSoftmax(a: vec.VFt, b: vec.VFt, k: Ft) vec.VFt {
     const m = @max(a, b);
-    return m + @log(@exp(@as(vec.Vf64, @splat(k)) * (a - m)) + @exp(@as(vec.Vf64, @splat(k)) * (b - m))) / @as(vec.Vf64, @splat(k));
+    return m + @log(@exp(@as(vec.VFt, @splat(k)) * (a - m)) + @exp(@as(vec.VFt, @splat(k)) * (b - m))) / @as(vec.VFt, @splat(k));
 }
 
 /// Softmin function using softmax
-inline fn vSoftmin(a: vec.Vf64, b: vec.Vf64, k: f64) vec.Vf64 {
+inline fn vSoftmin(a: vec.VFt, b: vec.VFt, k: Ft) vec.VFt {
     return -vSoftmax(-a, -b, k);
 }
 

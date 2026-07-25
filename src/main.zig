@@ -1,5 +1,5 @@
 const std = @import("std");
-const zlm = @import("zlm").as(f64);
+const zlm = @import("zlm").as(Ft);
 
 const scene_loader = @import("scene_loader.zig");
 const raymarcher = @import("raymarcher.zig");
@@ -10,6 +10,7 @@ const Camera = @import("Camera.zig");
 const Scene = @import("Scene.zig");
 const Skybox = @import("Skybox.zig");
 const settings = @import("settings.zig");
+const Ft = settings.Ft;
 const CssColor = @import("csscolorparser").Color(f32);
 
 pub const tracy_impl = @import("tracy_impl");

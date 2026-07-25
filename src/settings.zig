@@ -16,8 +16,10 @@ pub const DebugMode = enum {
     rayinfo,
 };
 
+/// Type of float used for geometry
+pub const Ft = f32;
 /// Distance from an object at which we consider we hit it
-pub var hit_distance: f64 = 0.02;
+pub var hit_distance: Ft = 0.02;
 /// Number of steps forward a ray can take before giving up
 pub var max_steps: usize = 1024;
 /// Number of steps forward a ray can take before giving up, when it's getting closer to something
@@ -42,7 +44,7 @@ pub var pic_width: usize = 1000;
 /// Height of the image output in pixels (doesn't apply when benchmarking)
 pub var pic_height: usize = 1000;
 /// Max x,y,z coordinates until a ray is given up on
-pub var scene_boundaries: f32 = 100; // TODO: turn that into max distance
+pub var scene_boundaries: Ft = 100; // TODO: turn that into max distance
 // Benchmarks showed that this works best with u16
 /// Vector length used for all vectorized operations
 pub const vec_len = std.simd.suggestVectorLength(u16) orelse 8;

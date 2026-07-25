@@ -1,8 +1,9 @@
 //! Constructive geometry object for scene tree
 const std = @import("std");
-const zlm = @import("zlm").as(f64);
+const zlm = @import("zlm").as(Ft);
 const Object = @import("../object.zig").Object;
 const vec = @import("../vector.zig");
+const Ft = @import("../settings.zig").Ft;
 
 const Csg = @This();
 
@@ -26,7 +27,7 @@ pub fn init(objectA: *Object, objectB: *Object, mode: Type) Csg {
 }
 
 /// Calculates the distance from this object
-pub fn distance(self: Csg, pos: zlm.Vec3) f64 {
+pub fn distance(self: Csg, pos: zlm.Vec3) Ft {
     const a = self.a.distance(pos);
     const b = self.b.distance(pos);
 
@@ -38,7 +39,7 @@ pub fn distance(self: Csg, pos: zlm.Vec3) f64 {
 }
 
 /// Calculates the distance from this object (vectorized)
-pub fn vDistance(self: Csg, x: vec.Vf64, y: vec.Vf64, z: vec.Vf64) vec.Vf64 {
+pub fn vDistance(self: Csg, x: vec.VFt, y: vec.VFt, z: vec.VFt) vec.VFt {
     const a = self.a.vDistance(x, y, z);
     const b = self.b.vDistance(x, y, z);
 

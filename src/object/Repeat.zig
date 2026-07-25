@@ -1,7 +1,8 @@
 //! Repetition of scene objects
 const std = @import("std");
-const zlm = @import("zlm").as(f64);
+const zlm = @import("zlm").as(Ft);
 const Object = @import("../object.zig").Object;
+const Ft = @import("../settings.zig").Ft;
 const vec = @import("../vector.zig");
 
 const Repeat = @This();
@@ -15,10 +16,10 @@ axis: packed struct {
     z: bool,
 },
 /// Period of the repetition
-modulo: f64,
+modulo: Ft,
 
 /// Inits a repeat object
-pub fn init(object: *Object, repeat_x: bool, repeat_y: bool, repeat_z: bool, modulo: f64) Repeat {
+pub fn init(object: *Object, repeat_x: bool, repeat_y: bool, repeat_z: bool, modulo: Ft) Repeat {
     return .{
         .o = object,
         .axis = .{
@@ -31,7 +32,7 @@ pub fn init(object: *Object, repeat_x: bool, repeat_y: bool, repeat_z: bool, mod
 }
 
 /// Calculates the distance from this object
-pub fn distance(self: Repeat, pos: zlm.Vec3) f64 {
+pub fn distance(self: Repeat, pos: zlm.Vec3) Ft {
     var temp = pos;
 
     if (self.axis.x)
@@ -45,7 +46,7 @@ pub fn distance(self: Repeat, pos: zlm.Vec3) f64 {
 }
 
 /// Calculates the distance from this object (vectorized)
-pub fn vDistance(self: Repeat, x: vec.Vf64, y: vec.Vf64, z: vec.Vf64) vec.Vf64 {
+pub fn vDistance(self: Repeat, x: vec.VFt, y: vec.VFt, z: vec.VFt) vec.VFt {
     var tx = x;
     var ty = y;
     var tz = z;
@@ -61,13 +62,13 @@ pub fn vDistance(self: Repeat, x: vec.Vf64, y: vec.Vf64, z: vec.Vf64) vec.Vf64 {
 }
 
 /// Function that acts like modulo but centered
-inline fn repeatFunction(val: f64, mod: f64) f64 {
+inline fn repeatFunction(val: Ft, mod: Ft) Ft {
     return @mod(val + mod / 2, mod) - mod / 2;
 }
 
 /// Function that acts like modulo but centered (vectorized)
-inline fn vRepeatFunction(val: vec.Vf64, mod: f64) vec.Vf64 {
-    return @mod(val + @as(vec.Vf64, @splat(mod / 2)), @as(vec.Vf64, @splat(mod))) - @as(vec.Vf64, @splat(mod / 2));
+inline fn vRepeatFunction(val: vec.VFt, mod: Ft) vec.VFt {
+    return @mod(val + @as(vec.VFt, @splat(mod / 2)), @as(vec.VFt, @splat(mod))) - @as(vec.VFt, @splat(mod / 2));
 }
 
 //Guillaume Derex 2020-2026

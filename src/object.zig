@@ -1,5 +1,5 @@
 //! Object union for the scene tree. See object/ folder for object types
-const zlm = @import("zlm").as(f64);
+const zlm = @import("zlm").as(Ft);
 const std = @import("std");
 const Primitive = @import("object/Primitive.zig");
 const Transform = @import("object/Transform.zig");
@@ -7,14 +7,15 @@ const Csg = @import("object/Csg.zig");
 const Repeat = @import("object/Repeat.zig");
 const Meld = @import("object/Meld.zig");
 const Negate = @import("object/Negate.zig");
-const Vf64 = @import("vector.zig").Vf64;
+const VFt = @import("vector.zig").VFt;
+const Ft = @import("settings.zig").Ft;
 
 /// Object union for the scene tree
 pub const Object = union(enum) {
     // TODO: does the switch have an impact when called repeatedly?
     /// Obtain distance to object
     /// Non-vectorized version which is only used for some specific, rarer operations
-    pub fn distance(self: Object, pos: zlm.Vec3) f64 {
+    pub fn distance(self: Object, pos: zlm.Vec3) Ft {
         return switch (self) {
             .primitive => |pri| pri.distanceFn(pos),
             inline else => |obj| obj.distance(pos),
@@ -22,7 +23,7 @@ pub const Object = union(enum) {
     }
 
     /// Obtain distance to object (vectorized)
-    pub fn vDistance(self: Object, xs: Vf64, ys: Vf64, zs: Vf64) Vf64 {
+    pub fn vDistance(self: Object, xs: VFt, ys: VFt, zs: VFt) VFt {
         return switch (self) {
             .primitive => |pri| pri.vDistanceFn(xs, ys, zs),
             inline else => |obj| obj.vDistance(xs, ys, zs),

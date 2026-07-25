@@ -1,5 +1,6 @@
 const std = @import("std");
-const zlm = @import("zlm").as(f64);
+const Ft = @import("settings.zig").Ft;
+const zlm = @import("zlm").as(Ft);
 
 const Material = @import("Material.zig");
 const Object = @import("object.zig").Object;
@@ -202,33 +203,33 @@ fn readTransformObject(alloc: std.mem.Allocator, object: *const std.json.ObjectM
 
     // Translation
     if (object.get("x")) |x|
-        translate.x = try readScalar(f64, &x);
+        translate.x = try readScalar(Ft, &x);
     if (object.get("y")) |y|
-        translate.y = try readScalar(f64, &y);
+        translate.y = try readScalar(Ft, &y);
     if (object.get("z")) |z|
-        translate.z = try readScalar(f64, &z);
+        translate.z = try readScalar(Ft, &z);
 
     // Rotation
     if (object.get("roll")) |roll|
-        rotate.x = zlm.toRadians(try readScalar(f64, &roll));
+        rotate.x = zlm.toRadians(try readScalar(Ft, &roll));
     if (object.get("yaw")) |yaw|
-        rotate.y = zlm.toRadians(try readScalar(f64, &yaw));
+        rotate.y = zlm.toRadians(try readScalar(Ft, &yaw));
     if (object.get("pitch")) |pitch|
-        rotate.z = zlm.toRadians(try readScalar(f64, &pitch));
+        rotate.z = zlm.toRadians(try readScalar(Ft, &pitch));
 
     // Scale
     if (object.get("scale")) |fullscale| {
-        const scale_val = try readScalar(f64, &fullscale);
+        const scale_val = try readScalar(Ft, &fullscale);
         scale.x = scale_val;
         scale.y = scale_val;
         scale.z = scale_val;
     }
     if (object.get("sx")) |x|
-        scale.x = try readScalar(f64, &x);
+        scale.x = try readScalar(Ft, &x);
     if (object.get("sy")) |y|
-        scale.y = try readScalar(f64, &y);
+        scale.y = try readScalar(Ft, &y);
     if (object.get("sz")) |z|
-        scale.z = try readScalar(f64, &z);
+        scale.z = try readScalar(Ft, &z);
 
     // Get object
     const obj_def = object.get("object") orelse return error.BadTransformJson;
@@ -312,7 +313,7 @@ fn readRepeatObject(alloc: std.mem.Allocator, object: *const std.json.ObjectMap)
 
     // Get period
     const period = object.get("period") orelse return error.BadRepeatJson;
-    const period_val = try readScalar(f64, &period);
+    const period_val = try readScalar(Ft, &period);
 
     // Get object
     const obj_def = object.get("object") orelse return error.BadTransformJson;
@@ -345,7 +346,7 @@ fn readMeldObject(alloc: std.mem.Allocator, object: *const std.json.ObjectMap) a
 
     // Get meld factor
     const meld_fac = object.get("factor") orelse return error.BadMeldJson;
-    const meld_factor = try readScalar(f64, &meld_fac);
+    const meld_factor = try readScalar(Ft, &meld_fac);
 
     return .{ .meld = .init(obj1_copy, obj2_copy, meld_factor) };
 }

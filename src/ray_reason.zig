@@ -1,10 +1,11 @@
 //! This struct is a temporary storage for the various values we are waiting for to calculate the color of a ray
 const std = @import("std");
-const zlm = @import("zlm").as(f64);
+const zlm = @import("zlm").as(Ft);
 const Color = @import("color.zig").Color;
 const Canvas = @import("Canvas.zig");
 const Material = @import("Material.zig");
 const settings = @import("settings.zig");
+const Ft = settings.Ft;
 const Ray = @import("Ray.zig");
 
 /// This struct stores all the needed intermediary results for the compute of a pixel

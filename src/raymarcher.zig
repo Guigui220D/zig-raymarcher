@@ -1,4 +1,4 @@
-const zlm = @import("zlm").as(f64);
+const zlm = @import("zlm").as(Ft);
 const std = @import("std");
 const math = std.math;
 
@@ -11,8 +11,8 @@ const csscolorparser = @import("csscolorparser");
 const Skybox = @import("Skybox.zig");
 const Ray = @import("Ray.zig");
 const RayLoad = @import("RayLoad.zig");
-
 const settings = @import("settings.zig");
+const Ft = settings.Ft;
 
 var current_scene: Scene = undefined;
 var current_canvas: Canvas = undefined;
