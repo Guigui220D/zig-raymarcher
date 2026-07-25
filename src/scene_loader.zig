@@ -1,18 +1,22 @@
+//! Loader class for JSON scenes
 const std = @import("std");
-const Ft = @import("settings.zig").Ft;
-const zlm = @import("zlm").as(Ft);
 
+const csscolorparser = @import("csscolorparser");
+
+const Color = @import("color.zig").Color;
+const Ft = @import("settings.zig").Ft;
+const LightSource = @import("LightSource.zig");
 const Material = @import("Material.zig");
 const Object = @import("object.zig").Object;
 const CsgType = @import("object/Csg.zig").Type;
+const Primitive = @import("object/Primitive.zig");
 const Renderable = @import("Renderable.zig");
 const Scene = @import("Scene.zig");
-const Color = @import("color.zig").Color;
-const Primitive = @import("object/Primitive.zig");
-const LightSource = @import("LightSource.zig");
-const csscolorparser = @import("csscolorparser");
 
-pub fn loadScene(alloc: std.mem.Allocator, io: std.Io, path: []const u8) !Scene {
+const zlm = @import("zlm").as(Ft);
+
+/// Loads a scene from a JSON file at a certain path
+pub fn loadSceneFromPath(alloc: std.mem.Allocator, io: std.Io, path: []const u8) !Scene {
     const cwd = std.Io.Dir.cwd();
     var file = try cwd.openFile(io, path, .{ .mode = .read_only });
     defer file.close(io);
@@ -20,61 +24,42 @@ pub fn loadScene(alloc: std.mem.Allocator, io: std.Io, path: []const u8) !Scene 
     var freader = file.reader(io, &.{});
     const reader = &freader.interface;
 
+    // Read all file into a slice
     const data = try reader.allocRemaining(alloc, .unlimited);
     defer alloc.free(data);
 
-    const json = try std.json.parseFromSlice(std.json.Value, alloc, data, .{});
-    defer json.deinit();
+    return loadSceneFromString(alloc, data);
+}
 
+/// Loads a scene from a JSON string
+pub fn loadSceneFromString(alloc: std.mem.Allocator, json_str: []const u8) !Scene {
     // TODO: better error management from unexpected/absent json values: avoid .?, check union values
+    const json = try std.json.parseFromSlice(std.json.Value, alloc, json_str, .{});
+    defer json.deinit();
 
     // Arena for the scene
     var arena: std.heap.ArenaAllocator = .init(alloc);
     const arena_alloc = arena.allocator();
     errdefer arena.deinit();
 
-    // Parse materials
-    var mats: std.ArrayList(Material) = .empty;
-    errdefer mats.deinit(arena_alloc);
-
-    var mat_names: std.StringHashMap(usize) = .init(alloc);
+    // Load materials
+    var mat_names: std.StringHashMap(u8) = .init(arena_alloc);
     defer mat_names.deinit();
 
-    const materials = json.value.object.get("materials").?;
-    var mat_it = materials.object.iterator();
-    while (mat_it.next()) |mat_entry| {
-        // Read material
-        const new_mat = try readMaterial(mat_entry.value_ptr);
-        // Id for names
-        const mat_id = mats.items.len;
-        // Add material
-        try mats.append(arena_alloc, new_mat);
-        errdefer _ = mats.pop();
-        // Get name
-        try mat_names.put(mat_entry.key_ptr.*, mat_id);
-        errdefer _ = mat_names.remove(mat_id);
-    }
+    const materials = json.value.object.get("materials") orelse return error.BadSceneJson;
+    const mats = try readMaterialSection(arena_alloc, &materials, &mat_names);
 
     // Parse objects
-    var objs: std.ArrayList(Renderable) = .empty;
-    errdefer objs.deinit(arena_alloc);
-
-    const contents = json.value.object.get("contents").?;
-    const obj_items = contents.array.items;
-    for (obj_items) |obj_entry| {
-        // Read renderable
-        const new_obj = try readRenderable(arena_alloc, &obj_entry, &mat_names);
-        if (new_obj.enabled)
-            try objs.append(arena_alloc, new_obj);
-    }
+    const contents = json.value.object.get("contents") orelse return error.BadSceneJson;
+    const objs = try readContentsSection(arena_alloc, &contents, &mat_names);
 
     const camera = json.value.object.get("camera").?;
     _ = camera;
 
     return .{
         .arena = arena,
-        .materials = try mats.toOwnedSlice(arena_alloc),
-        .objects = try objs.toOwnedSlice(arena_alloc),
+        .materials = mats,
+        .objects = objs,
         .lights = &[1]LightSource{.{}}, // TODO: lights
         .global_light = .{}, // TODO: global light and skybox
     };
@@ -82,7 +67,60 @@ pub fn loadScene(alloc: std.mem.Allocator, io: std.Io, path: []const u8) !Scene 
 
 // TODO: add errors on unexpected fields (rather than ignore them)
 
-fn readRenderable(alloc: std.mem.Allocator, value: *const std.json.Value, material_names: *std.StringHashMap(usize)) !Renderable {
+/// Reads the contents section of the scene JSON
+/// Passed allocator must be an arena allocator: unused objects will be allocated but won't be in the slice
+fn readContentsSection(alloc: std.mem.Allocator, value: *const std.json.Value, mat_names: *std.StringHashMap(u8)) ![]const Renderable {
+    if (value.* != .array)
+        return error.BadSceneJson;
+
+    // Temporary storage for renderables
+    var objs: std.ArrayList(Renderable) = .empty;
+    errdefer objs.deinit(alloc);
+
+    // Iterate on renderable definitions
+    for (value.array.items) |ren_entry| {
+        // Read renderable
+        const new_obj = try readRenderable(alloc, &ren_entry, mat_names);
+        if (new_obj.enabled)
+            try objs.append(alloc, new_obj);
+    }
+
+    const ren_slice = try objs.toOwnedSlice(alloc);
+    return ren_slice;
+}
+
+/// Reads the materials list section of the scene JSON
+fn readMaterialSection(alloc: std.mem.Allocator, value: *const std.json.Value, mat_names: *std.StringHashMap(u8)) ![]const Material {
+    if (value.* != .object)
+        return error.BadSceneJson;
+
+    // Temporary storage for materials
+    var mats: std.ArrayList(Material) = .empty;
+    errdefer mats.deinit(alloc);
+
+    // Iterate on material definitions
+    var mat_it = value.object.iterator();
+    while (mat_it.next()) |mat_entry| {
+        // Read material
+        const new_mat = try readMaterial(mat_entry.value_ptr);
+        // Id for names
+        const mat_id = mats.items.len;
+        if (mat_id >= 256)
+            return error.TooManyMaterials;
+        // Add material
+        try mats.append(alloc, new_mat);
+        errdefer _ = mats.pop();
+        // Get name
+        try mat_names.put(mat_entry.key_ptr.*, @truncate(mat_id));
+        errdefer _ = mat_names.remove(mat_id);
+    }
+
+    const mat_slice = try mats.toOwnedSlice(alloc);
+    return mat_slice;
+}
+
+/// Read renderable object entry from the scene JSON
+fn readRenderable(alloc: std.mem.Allocator, value: *const std.json.Value, material_names: *std.StringHashMap(u8)) !Renderable {
     if (value.* != .object)
         return error.BadRenderableJson;
 
@@ -114,6 +152,7 @@ fn readRenderable(alloc: std.mem.Allocator, value: *const std.json.Value, materi
     };
 }
 
+/// Read object tree from the scene JSON (recursive)
 fn readObject(alloc: std.mem.Allocator, value: *const std.json.Value) !Object {
     if (value.* != .object)
         return error.BadObjectJson;
@@ -149,6 +188,7 @@ fn readObject(alloc: std.mem.Allocator, value: *const std.json.Value) !Object {
     return ret orelse error.BadObjectJson;
 }
 
+/// Read material entry from the scene JSON
 fn readMaterial(value: *std.json.Value) !Material {
     if (value.* != .object)
         return error.BadMaterialJson;
@@ -173,6 +213,7 @@ fn readMaterial(value: *std.json.Value) !Material {
     return new_mat;
 }
 
+/// Read color value (css syntax) from a JSON string
 fn readColor(value: *const std.json.Value) !Color {
     if (value.* != .string)
         return error.BadColorJson;
@@ -191,6 +232,7 @@ fn readColor(value: *const std.json.Value) !Color {
 }
 
 // TODO: avoid anyerror, define set
+/// Read transform object from the JSON scene
 fn readTransformObject(alloc: std.mem.Allocator, object: *const std.json.ObjectMap) anyerror!Object {
     //std.debug.print("Reading transform object...\n", .{});
 
@@ -240,6 +282,7 @@ fn readTransformObject(alloc: std.mem.Allocator, object: *const std.json.ObjectM
     return .{ .transform = .init(obj_copy, rotate, scale, translate) };
 }
 
+/// Read primitive object from the JSON scene
 fn readPrimitiveObject(_: std.mem.Allocator, object: *const std.json.ObjectMap) anyerror!Object {
     //std.debug.print("Reading primitive object...\n", .{});
     // Get type
@@ -252,6 +295,7 @@ fn readPrimitiveObject(_: std.mem.Allocator, object: *const std.json.ObjectMap) 
     return .{ .primitive = primitive };
 }
 
+/// Read CSG object from the JSON scene
 fn readCSGObject(alloc: std.mem.Allocator, object: *const std.json.ObjectMap) anyerror!Object {
     //std.debug.print("Reading CSG object...\n", .{});
     // Get type
@@ -290,6 +334,7 @@ fn readCSGObject(alloc: std.mem.Allocator, object: *const std.json.ObjectMap) an
     return .{ .csg = .init(obj1_copy, obj2_copy, csg_type.?) };
 }
 
+/// Read repeat object from the JSON scene
 fn readRepeatObject(alloc: std.mem.Allocator, object: *const std.json.ObjectMap) anyerror!Object {
     //std.debug.print("Reading repeat object...\n", .{});
     // Get axis
@@ -324,6 +369,7 @@ fn readRepeatObject(alloc: std.mem.Allocator, object: *const std.json.ObjectMap)
     return Object{ .repeat = .init(obj_copy, repeat_x, repeat_y, repeat_z, period_val) };
 }
 
+/// Read meld object from the JSON scene
 fn readMeldObject(alloc: std.mem.Allocator, object: *const std.json.ObjectMap) anyerror!Object {
     //std.debug.print("Reading meld object...\n", .{});
 
@@ -349,6 +395,7 @@ fn readMeldObject(alloc: std.mem.Allocator, object: *const std.json.ObjectMap) a
     return .{ .meld = .init(obj1_copy, obj2_copy, meld_factor) };
 }
 
+/// Read negate object from the JSON scene
 fn readNegateObject(alloc: std.mem.Allocator, object: *const std.json.ObjectMap) anyerror!Object {
     //std.debug.print("Reading negate object...\n", .{});
     // Get object
@@ -362,6 +409,7 @@ fn readNegateObject(alloc: std.mem.Allocator, object: *const std.json.ObjectMap)
     return Object{ .negate = .init(obj_copy) };
 }
 
+/// Read scalar value from a JSON float or int
 fn readScalar(FloatT: type, value: *const std.json.Value) !FloatT {
     return switch (value.*) {
         .float => |val| @floatCast(val),

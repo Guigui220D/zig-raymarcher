@@ -77,7 +77,7 @@ pub fn main(init: std.process.Init) !void {
 
     std.debug.print("Preparing the scene...\n", .{});
 
-    const scene: Scene = try scene_loader.loadScene(alloc, io, scene_path);
+    const scene: Scene = try scene_loader.loadSceneFromPath(alloc, io, scene_path);
     defer scene.deinit();
 
     // TODO: make configurable (no hardcode)
