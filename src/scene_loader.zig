@@ -36,32 +36,41 @@ pub fn loadSceneFromString(alloc: std.mem.Allocator, json_str: []const u8) !Scen
     // TODO: better error management from unexpected/absent json values: avoid .?, check union values
     const json = try std.json.parseFromSlice(std.json.Value, alloc, json_str, .{});
     defer json.deinit();
+    const json_obj = &json.value.object;
 
     // Arena for the scene
     var arena: std.heap.ArenaAllocator = .init(alloc);
     const arena_alloc = arena.allocator();
     errdefer arena.deinit();
 
-    // Load materials
+    // Material names stringmap
     var mat_names: std.StringHashMap(u8) = .init(arena_alloc);
     defer mat_names.deinit();
 
-    const materials = json.value.object.get("materials") orelse return error.BadSceneJson;
+    // Load materials
+    const materials = json_obj.get("materials") orelse return error.BadSceneJson;
     const mats = try readMaterialSection(arena_alloc, &materials, &mat_names);
 
     // Parse objects
-    const contents = json.value.object.get("contents") orelse return error.BadSceneJson;
+    const contents = json_obj.get("contents") orelse return error.BadSceneJson;
     const objs = try readContentsSection(arena_alloc, &contents, &mat_names);
 
-    const camera = json.value.object.get("camera").?;
+    // Parse camera TODO
+    const camera = json_obj.get("camera").?;
     _ = camera;
+
+    // Parse global light
+    const global_light = try readGlobalLightSection(json_obj);
+
+    // Parse lights
+    const lights = try readLightsSection(arena_alloc, json_obj);
 
     return .{
         .arena = arena,
         .materials = mats,
         .objects = objs,
-        .lights = &[1]LightSource{.{}}, // TODO: lights
-        .global_light = .{}, // TODO: global light and skybox
+        .lights = lights,
+        .global_light = global_light,
     };
 }
 
@@ -117,6 +126,38 @@ fn readMaterialSection(alloc: std.mem.Allocator, value: *const std.json.Value, m
 
     const mat_slice = try mats.toOwnedSlice(alloc);
     return mat_slice;
+}
+
+/// Reads the global light section from the JSON
+/// Unlike other sections, the whole scene JSON is passed
+/// because global light source is optional
+fn readGlobalLightSection(value: *const std.json.ObjectMap) !LightSource {
+    const global_light_json = value.get("global_light") orelse return LightSource{};
+
+    // Parse light (note: here the position of the light is irrelevant)
+    return try readLightSource(&global_light_json);
+}
+
+/// Reads the light list section from the JSON
+/// The whole scene JSON is passed as this section is optional
+fn readLightsSection(alloc: std.mem.Allocator, value: *const std.json.ObjectMap) ![]LightSource {
+    const light_json = value.get("lights") orelse return &[0]LightSource{};
+    if (light_json != .array)
+        return error.BadSceneJson;
+
+    // Temporary storage for lights
+    var lights: std.ArrayList(LightSource) = .empty;
+    errdefer lights.deinit(alloc);
+
+    // Iterate on light definitions
+    for (light_json.array.items) |light_entry| {
+        // Read light
+        const new_light = try readLightSource(&light_entry);
+        try lights.append(alloc, new_light);
+    }
+
+    const light_slice = try lights.toOwnedSlice(alloc);
+    return light_slice;
 }
 
 /// Read renderable object entry from the scene JSON
@@ -211,24 +252,6 @@ fn readMaterial(value: *std.json.Value) !Material {
     // TODO: more advanced textures
 
     return new_mat;
-}
-
-/// Read color value (css syntax) from a JSON string
-fn readColor(value: *const std.json.Value) !Color {
-    if (value.* != .string)
-        return error.BadColorJson;
-
-    const color = csscolorparser.Color(f32).parse(value.string) catch |e| {
-        std.debug.print("Error {} while parsing color \"{s}\".\n", .{ e, value.string });
-        return error.BadColorJson;
-    };
-
-    return .{
-        .a = color.alpha,
-        .r = color.red,
-        .g = color.green,
-        .b = color.blue,
-    };
 }
 
 // TODO: avoid anyerror, define set
@@ -407,6 +430,48 @@ fn readNegateObject(alloc: std.mem.Allocator, object: *const std.json.ObjectMap)
     obj_copy.* = obj;
 
     return Object{ .negate = .init(obj_copy) };
+}
+
+/// Read light source from the JSON scene
+fn readLightSource(value: *const std.json.Value) !LightSource {
+    if (value.* != .object)
+        return error.BadLightJson;
+    const light_def = &value.object;
+
+    // Default value
+    var light = LightSource{};
+
+    // Position
+    if (light_def.get("x")) |x|
+        light.pos.x = try readScalar(Ft, &x);
+    if (light_def.get("y")) |y|
+        light.pos.y = try readScalar(Ft, &y);
+    if (light_def.get("z")) |z|
+        light.pos.z = try readScalar(Ft, &z);
+
+    // Color
+    if (light_def.get("color")) |col_entry|
+        light.color = try readColor(&col_entry);
+
+    return light;
+}
+
+/// Read color value (css syntax) from a JSON string
+fn readColor(value: *const std.json.Value) !Color {
+    if (value.* != .string)
+        return error.BadColorJson;
+
+    const color = csscolorparser.Color(f32).parse(value.string) catch |e| {
+        std.debug.print("Error {} while parsing color \"{s}\".\n", .{ e, value.string });
+        return error.BadColorJson;
+    };
+
+    return .{
+        .a = color.alpha,
+        .r = color.red,
+        .g = color.green,
+        .b = color.blue,
+    };
 }
 
 /// Read scalar value from a JSON float or int
