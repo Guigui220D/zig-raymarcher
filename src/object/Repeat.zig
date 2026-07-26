@@ -2,8 +2,9 @@
 const std = @import("std");
 const zlm = @import("zlm").as(Ft);
 const Object = @import("../object.zig").Object;
-const Ft = @import("../settings.zig").Ft;
-const vec = @import("../vector.zig");
+const types = @import("../types.zig");
+const VFt = types.VFt;
+const Ft = types.Ft;
 
 const Repeat = @This();
 
@@ -46,7 +47,7 @@ pub fn distance(self: Repeat, pos: zlm.Vec3) Ft {
 }
 
 /// Calculates the distance from this object (vectorized)
-pub fn vDistance(self: Repeat, x: vec.VFt, y: vec.VFt, z: vec.VFt) vec.VFt {
+pub fn vDistance(self: Repeat, x: VFt, y: VFt, z: VFt) VFt {
     var tx = x;
     var ty = y;
     var tz = z;
@@ -67,8 +68,8 @@ inline fn repeatFunction(val: Ft, mod: Ft) Ft {
 }
 
 /// Function that acts like modulo but centered (vectorized)
-inline fn vRepeatFunction(val: vec.VFt, mod: Ft) vec.VFt {
-    return @mod(val + @as(vec.VFt, @splat(mod / 2)), @as(vec.VFt, @splat(mod))) - @as(vec.VFt, @splat(mod / 2));
+inline fn vRepeatFunction(val: VFt, mod: Ft) VFt {
+    return @mod(val + @as(VFt, @splat(mod / 2)), @as(VFt, @splat(mod))) - @as(VFt, @splat(mod / 2));
 }
 
 //Guillaume Derex 2020-2026

@@ -1,4 +1,4 @@
-const Ft = @import("settings.zig").Ft;
+const Ft = @import("types.zig").Ft;
 const zlm = @import("zlm").as(Ft);
 
 origin: zlm.Vec3 = zlm.Vec3.zero,

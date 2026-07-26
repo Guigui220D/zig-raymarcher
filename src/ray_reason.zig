@@ -1,12 +1,15 @@
 //! This struct is a temporary storage for the various values we are waiting for to calculate the color of a ray
 const std = @import("std");
-const zlm = @import("zlm").as(Ft);
-const Color = @import("color.zig").Color;
+
 const Canvas = @import("Canvas.zig");
+const Color = @import("color.zig").Color;
+const Ft = @import("types.zig").Ft;
 const Material = @import("Material.zig");
-const settings = @import("settings.zig");
-const Ft = settings.Ft;
 const Ray = @import("Ray.zig");
+const Settings = @import("Settings.zig");
+
+const zlm = @import("zlm").as(Ft);
+const settings = &Settings.current;
 
 /// This struct stores all the needed intermediary results for the compute of a pixel
 /// The resulting color will be sent to the target
@@ -71,7 +74,7 @@ pub const Target = union(enum) {
     pub fn hit(self: Target, alloc: std.mem.Allocator, material: ?Material, ray: Ray, rays: *Ray.Rays, normal: zlm.Vec3) !bool {
         const bounces_left = self.getDepth();
 
-        switch (settings.debug_mode) {
+        switch (Settings.debug_mode) {
             .normal => {
                 self.apply(.{
                     .a = 1.0,
@@ -116,6 +119,7 @@ pub const Target = union(enum) {
                 result_storage.* = ResultStorage.init(mat, self, bounces_left - 1);
 
                 // TODO: do not forget to change when new reflectivity
+                // TODO: can we determine that a reflection's result won't affect the final result much and not throw a ray?
                 if (mat.reflectivity != 0) {
                     var reflection = ray.reflect(normal, .{ .reflected = result_storage });
                     // Necessary to escape hitting the same thing again

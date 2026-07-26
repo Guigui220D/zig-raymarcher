@@ -1,15 +1,20 @@
+//! Struct representing a ray thrown by something
+//! Is used within MultiArrayList for a SoA scheme
 const std = @import("std");
-const zlm = @import("zlm").as(Ft);
+
+const csscolorparser = @import("csscolorparser");
 
 const Canvas = @import("Canvas.zig");
-const settings = @import("settings.zig");
-const Ft = settings.Ft;
 const Color = @import("color.zig").Color;
-const csscolorparser = @import("csscolorparser");
-const vec = @import("vector.zig");
+const Material = @import("Material.zig");
 const RayTarget = @import("ray_reason.zig").Target;
 const Renderable = @import("Renderable.zig");
-const Material = @import("Material.zig");
+const Settings = @import("Settings.zig");
+const types = @import("types.zig");
+const Ft = types.Ft;
+
+const settings = &Settings.current;
+const zlm = @import("zlm").as(Ft);
 
 const Ray = @This();
 /// SoA array of rays for vectorization
@@ -93,13 +98,13 @@ pub fn stopped(self: Ray) bool {
 }
 
 /// Returns true if the ray is done working (vectorized)
-pub fn vStopped(x: vec.VFt, y: vec.VFt, z: vec.VFt, min_dist: vec.VFt, total_steps: vec.Vusize, steps_closer: vec.Vusize) vec.Vbool {
-    const oob = (x > @as(vec.VFt, @splat(settings.scene_boundaries))) |
-        (y > @as(vec.VFt, @splat(settings.scene_boundaries))) |
-        (z > @as(vec.VFt, @splat(settings.scene_boundaries)));
-    return (min_dist < @as(vec.VFt, @splat(settings.hit_distance))) |
-        (total_steps >= @as(vec.Vusize, @splat(settings.max_steps))) |
-        (steps_closer > @as(vec.Vusize, @splat(settings.max_steps_getting_closer))) |
+pub fn vStopped(x: types.VFt, y: types.VFt, z: types.VFt, min_dist: types.VFt, total_steps: types.Vusize, steps_closer: types.Vusize) types.Vbool {
+    const oob = (x > @as(types.VFt, @splat(settings.scene_boundaries))) |
+        (y > @as(types.VFt, @splat(settings.scene_boundaries))) |
+        (z > @as(types.VFt, @splat(settings.scene_boundaries)));
+    return (min_dist < @as(types.VFt, @splat(settings.hit_distance))) |
+        (total_steps >= @as(types.Vusize, @splat(settings.max_steps))) |
+        (steps_closer > @as(types.Vusize, @splat(settings.max_steps_getting_closer))) |
         oob;
 }
 
@@ -132,31 +137,31 @@ pub fn vProgress(slice: *const std.MultiArrayList(Ray).Slice) void {
     const md_s = slice.items(.min_dist);
 
     var i: usize = 0;
-    while (i < slice.len) : (i += settings.vec_len) {
-        var xp: vec.VFt = xp_s[i..][0..settings.vec_len].*;
-        var yp: vec.VFt = yp_s[i..][0..settings.vec_len].*;
-        var zp: vec.VFt = zp_s[i..][0..settings.vec_len].*;
-        const xd: vec.VFt = xd_s[i..][0..settings.vec_len].*;
-        const yd: vec.VFt = yd_s[i..][0..settings.vec_len].*;
-        const zd: vec.VFt = zd_s[i..][0..settings.vec_len].*;
-        var ts: vec.Vu16 = ts_s[i..][0..settings.vec_len].*;
-        var sc: vec.Vu16 = sc_s[i..][0..settings.vec_len].*;
-        const md: vec.VFt = md_s[i..][0..settings.vec_len].*;
+    while (i < slice.len) : (i += types.vec_len) {
+        var xp: types.VFt = xp_s[i..][0..types.vec_len].*;
+        var yp: types.VFt = yp_s[i..][0..types.vec_len].*;
+        var zp: types.VFt = zp_s[i..][0..types.vec_len].*;
+        const xd: types.VFt = xd_s[i..][0..types.vec_len].*;
+        const yd: types.VFt = yd_s[i..][0..types.vec_len].*;
+        const zd: types.VFt = zd_s[i..][0..types.vec_len].*;
+        var ts: types.Vu16 = ts_s[i..][0..types.vec_len].*;
+        var sc: types.Vu16 = sc_s[i..][0..types.vec_len].*;
+        const md: types.VFt = md_s[i..][0..types.vec_len].*;
 
         xp += xd * md;
         yp += yd * md;
         zp += zd * md;
-        ts += @as(vec.Vu16, @splat(1));
-        sc += @as(vec.Vu16, @splat(1));
+        ts += @as(types.Vu16, @splat(1));
+        sc += @as(types.Vu16, @splat(1));
 
-        xp_s[i..][0..settings.vec_len].* = xp;
-        yp_s[i..][0..settings.vec_len].* = yp;
-        zp_s[i..][0..settings.vec_len].* = zp;
-        xd_s[i..][0..settings.vec_len].* = xd;
-        yd_s[i..][0..settings.vec_len].* = yd;
-        zd_s[i..][0..settings.vec_len].* = zd;
-        ts_s[i..][0..settings.vec_len].* = ts;
-        sc_s[i..][0..settings.vec_len].* = sc;
+        xp_s[i..][0..types.vec_len].* = xp;
+        yp_s[i..][0..types.vec_len].* = yp;
+        zp_s[i..][0..types.vec_len].* = zp;
+        xd_s[i..][0..types.vec_len].* = xd;
+        yd_s[i..][0..types.vec_len].* = yd;
+        zd_s[i..][0..types.vec_len].* = zd;
+        ts_s[i..][0..types.vec_len].* = ts;
+        sc_s[i..][0..types.vec_len].* = sc;
     }
 }
 
@@ -167,3 +172,5 @@ pub fn hit(self: Ray, alloc: std.mem.Allocator, rays: *Rays, obj: *const Rendera
 
     return try self.target.hit(alloc, mat, self, rays, normal);
 }
+
+//Guillaume Derex 2020-2026

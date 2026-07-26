@@ -1,33 +1,24 @@
+//! Entry point
 const std = @import("std");
-const zlm = @import("zlm").as(Ft);
-
-const scene_loader = @import("scene_loader.zig");
-const raymarcher = @import("raymarcher.zig");
-const Object = @import("object.zig").Object;
-const Canvas = @import("Canvas.zig");
-const image_save = @import("image_save.zig");
-const Camera = @import("Camera.zig");
-const Scene = @import("Scene.zig");
-const Skybox = @import("Skybox.zig");
-const settings = @import("settings.zig");
-const Ft = settings.Ft;
-const CssColor = @import("csscolorparser").Color(f32);
-
-pub const tracy_impl = @import("tracy_impl");
 
 pub const tracy = @import("tracy");
-pub const tracy_options: tracy.Options = .{
-    .on_demand = false,
-    .no_broadcast = false,
-    .only_localhost = false,
-    .only_ipv4 = false,
-    .delayed_init = false,
-    .manual_lifetime = false,
-    .verbose = false,
-    .data_port = null,
-    .broadcast_port = null,
-    .default_callstack_depth = 0,
-};
+pub const tracy_impl = @import("tracy_impl");
+
+const Camera = @import("Camera.zig");
+const Canvas = @import("Canvas.zig");
+const types = @import("types.zig");
+const Ft = types.Ft;
+const image_save = @import("image_save.zig");
+const Object = @import("object.zig").Object;
+const raymarcher = @import("raymarcher.zig");
+const Scene = @import("Scene.zig");
+const scene_loader = @import("scene_loader.zig");
+const Settings = @import("Settings.zig");
+const Skybox = @import("Skybox.zig");
+
+const zlm = @import("zlm").as(Ft);
+
+const CssColor = @import("csscolorparser").Color(f32);
 
 pub fn main(init: std.process.Init) !void {
     const alloc = init.gpa;
@@ -35,6 +26,8 @@ pub fn main(init: std.process.Init) !void {
 
     var scene_path: []const u8 = "scenes/default_scene.json";
 
+    var preview_mode: bool = false;
+    var benchmark_mode: bool = false;
     // TODO: add an argument parsing library
     { // Check arguments
         var first = true;
@@ -45,28 +38,37 @@ pub fn main(init: std.process.Init) !void {
                 continue;
             }
             if (std.ascii.eqlIgnoreCase(arg, "preview")) {
-                settings.preview = true;
+                preview_mode = true;
             } else if (std.ascii.eqlIgnoreCase(arg, "benchmark")) {
-                settings.benchmark = true;
+                benchmark_mode = true;
             } else {
                 scene_path = arg;
             }
         }
     }
 
-    // TODO: do that elsewhere
-    if (settings.preview) {
+    // Select settings
+    // TODO: settings from file
+    if (preview_mode) {
+        if (benchmark_mode) {
+            std.log.err("Can't use both preview and benchmark modes!", .{});
+            return;
+        }
         std.log.warn("Running in preview mode!", .{});
-        settings.max_steps /= 2;
-        settings.max_recursions /= 2;
-        settings.max_steps_getting_closer = settings.max_steps * 2;
-        settings.hit_distance *= 2;
-        settings.pic_height /= 2;
-        settings.pic_width /= 2;
+        Settings.current = Settings.preview;
     }
 
-    const node = std.Progress.start(io, .{ .root_name = "render", .disable_printing = false });
-    settings.reportSettings();
+    if (benchmark_mode) {
+        std.log.warn("Running in benchmark mode", .{});
+        Settings.current = Settings.benchmark;
+    }
+
+    // Report settings
+    std.log.debug("Vector length: {}", .{types.vec_len});
+    Settings.current.reportSettings();
+
+    const node = std.Progress.start(io, .{ .root_name = "Render", .disable_printing = false });
+    defer node.end();
 
     std.log.info("Scene path: {s}", .{scene_path});
 
@@ -101,23 +103,26 @@ pub fn main(init: std.process.Init) !void {
 
     std.log.info("Rendering frame...", .{});
 
-    if (settings.benchmark) {
+    if (benchmark_mode) {
         var canvas = try Canvas.init(alloc, 200, 200);
         defer canvas.deinit();
 
         std.log.info("Benchmarking!", .{});
         std.log.info("Warmup...", .{});
         // Warmup run
-        _ = try raymarcher.render(alloc, io, scene, canvas, .{}, &skybox, node);
+        const warmup_time = try raymarcher.render(alloc, io, scene, canvas, .{}, &skybox, node);
+        std.log.debug("Benchmark done ({} ms)", .{@divFloor(warmup_time, 1000)});
 
-        std.log.info("Doing {} runs...", .{settings.benchmark_it});
+        std.log.info("Doing {} runs...", .{Settings.benchmark_it});
         var sum: i64 = 0;
-        for (0..settings.benchmark_it) |_| {
-            sum += try raymarcher.render(alloc, io, scene, canvas, .{}, &skybox, node);
+        for (0..Settings.benchmark_it) |i| {
+            const time = try raymarcher.render(alloc, io, scene, canvas, .{}, &skybox, node);
+            sum += time;
+            std.log.debug("Run #{} done ({} ms)", .{ i, @divFloor(time, 1000) });
         }
-        std.log.info("Done! Avg {} ms per run", .{@divFloor(sum, @as(i64, @intCast(settings.benchmark_it)) * 1000)});
+        std.log.info("Done! Avg {} ms per run", .{@divFloor(sum, @as(i64, @intCast(Settings.benchmark_it)) * 1000)});
     } else {
-        var canvas = try Canvas.init(alloc, settings.pic_width, settings.pic_height);
+        var canvas = try Canvas.init(alloc, Settings.current.pic_width, Settings.current.pic_height);
         defer canvas.deinit();
 
         const time = try raymarcher.render(alloc, io, scene, canvas, .{}, &skybox, node);

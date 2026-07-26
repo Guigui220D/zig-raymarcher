@@ -2,8 +2,9 @@
 const std = @import("std");
 const zlm = @import("zlm").as(Ft);
 const Object = @import("../object.zig").Object;
-const vec = @import("../vector.zig");
-const Ft = @import("../settings.zig").Ft;
+const types = @import("../types.zig");
+const VFt = types.VFt;
+const Ft = types.Ft;
 
 const Negate = @This();
 
@@ -23,7 +24,7 @@ pub fn distance(self: Negate, pos: zlm.Vec3) Ft {
 }
 
 /// Calculates the distance from this object (vectorized)
-pub fn vDistance(self: Negate, x: vec.VFt, y: vec.VFt, z: vec.VFt) vec.VFt {
+pub fn vDistance(self: Negate, x: VFt, y: VFt, z: VFt) VFt {
     return -self.o.vDistance(x, y, z);
 }
 

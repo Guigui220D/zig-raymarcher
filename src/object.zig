@@ -7,8 +7,9 @@ const Csg = @import("object/Csg.zig");
 const Repeat = @import("object/Repeat.zig");
 const Meld = @import("object/Meld.zig");
 const Negate = @import("object/Negate.zig");
-const VFt = @import("vector.zig").VFt;
-const Ft = @import("settings.zig").Ft;
+const types = @import("types.zig");
+const VFt = types.VFt;
+const Ft = types.Ft;
 
 /// Object union for the scene tree
 pub const Object = union(enum) {

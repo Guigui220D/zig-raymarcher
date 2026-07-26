@@ -4,7 +4,7 @@ const std = @import("std");
 const csscolorparser = @import("csscolorparser");
 
 const Color = @import("color.zig").Color;
-const Ft = @import("settings.zig").Ft;
+const Ft = @import("types.zig").Ft;
 const LightSource = @import("LightSource.zig");
 const Material = @import("Material.zig");
 const Object = @import("object.zig").Object;
@@ -462,7 +462,7 @@ fn readColor(value: *const std.json.Value) !Color {
         return error.BadColorJson;
 
     const color = csscolorparser.Color(f32).parse(value.string) catch |e| {
-        std.log.erro("Error {} while parsing color \"{s}\".", .{ e, value.string });
+        std.log.err("Error {} while parsing color \"{s}\".", .{ e, value.string });
         return error.BadColorJson;
     };
 

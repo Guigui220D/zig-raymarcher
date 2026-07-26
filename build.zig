@@ -4,15 +4,8 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const tracy_enabled = b.option(
-        bool,
-        "tracy",
-        "Build with Tracy support.",
-    ) orelse false;
-
     const zlm_dep = b.dependency("zlm", .{});
     const zigimg_dep = b.dependency("zigimg", .{});
-    const tracy = b.dependency("tracy", .{ .target = target, .optimize = optimize });
     const csscolorparser_dep = b.dependency("csscolorparser", .{});
 
     const exe = b.addExecutable(.{
@@ -26,19 +19,10 @@ pub fn build(b: *std.Build) void {
                 .{ .name = "zlm", .module = zlm_dep.module("zlm") },
                 .{ .name = "zigimg", .module = zigimg_dep.module("zigimg") },
                 .{ .name = "csscolorparser", .module = csscolorparser_dep.module("csscolorparser") },
-                .{ .name = "tracy", .module = tracy.module("tracy") },
             },
         }),
         .use_llvm = true,
     });
-
-    if (tracy_enabled) {
-        // The user asked to enable Tracy, use the real implementation
-        exe.root_module.addImport("tracy_impl", tracy.module("tracy_impl_enabled"));
-    } else {
-        // The user asked to disable Tracy, use the dummy implementation
-        exe.root_module.addImport("tracy_impl", tracy.module("tracy_impl_disabled"));
-    }
 
     b.installArtifact(exe);
 

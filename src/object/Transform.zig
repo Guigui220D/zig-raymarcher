@@ -2,8 +2,9 @@
 const std = @import("std");
 const zlm = @import("zlm").as(Ft);
 const Object = @import("../object.zig").Object;
-const vec = @import("../vector.zig");
-const Ft = @import("../settings.zig").Ft;
+const types = @import("../types.zig");
+const VFt = types.VFt;
+const Ft = types.Ft;
 
 const Transform = @This();
 
@@ -34,26 +35,26 @@ pub fn distance(self: Transform, pos: zlm.Vec3) Ft {
 }
 
 /// Calculates the distance from this object (vectorized)
-pub fn vDistance(self: Transform, x: vec.VFt, y: vec.VFt, z: vec.VFt) vec.VFt {
-    var rx: vec.VFt = @splat(0);
-    var ry: vec.VFt = @splat(0);
-    var rz: vec.VFt = @splat(0);
+pub fn vDistance(self: Transform, x: VFt, y: VFt, z: VFt) VFt {
+    var rx: VFt = @splat(0);
+    var ry: VFt = @splat(0);
+    var rz: VFt = @splat(0);
 
-    rx += x * @as(vec.VFt, @splat(self.transform.fields[0][0]));
-    ry += x * @as(vec.VFt, @splat(self.transform.fields[0][1]));
-    rz += x * @as(vec.VFt, @splat(self.transform.fields[0][2]));
+    rx += x * @as(VFt, @splat(self.transform.fields[0][0]));
+    ry += x * @as(VFt, @splat(self.transform.fields[0][1]));
+    rz += x * @as(VFt, @splat(self.transform.fields[0][2]));
 
-    rx += y * @as(vec.VFt, @splat(self.transform.fields[1][0]));
-    ry += y * @as(vec.VFt, @splat(self.transform.fields[1][1]));
-    rz += y * @as(vec.VFt, @splat(self.transform.fields[1][2]));
+    rx += y * @as(VFt, @splat(self.transform.fields[1][0]));
+    ry += y * @as(VFt, @splat(self.transform.fields[1][1]));
+    rz += y * @as(VFt, @splat(self.transform.fields[1][2]));
 
-    rx += z * @as(vec.VFt, @splat(self.transform.fields[2][0]));
-    ry += z * @as(vec.VFt, @splat(self.transform.fields[2][1]));
-    rz += z * @as(vec.VFt, @splat(self.transform.fields[2][2]));
+    rx += z * @as(VFt, @splat(self.transform.fields[2][0]));
+    ry += z * @as(VFt, @splat(self.transform.fields[2][1]));
+    rz += z * @as(VFt, @splat(self.transform.fields[2][2]));
 
-    rx += @as(vec.VFt, @splat(self.transform.fields[3][0]));
-    ry += @as(vec.VFt, @splat(self.transform.fields[3][1]));
-    rz += @as(vec.VFt, @splat(self.transform.fields[3][2]));
+    rx += @as(VFt, @splat(self.transform.fields[3][0]));
+    ry += @as(VFt, @splat(self.transform.fields[3][1]));
+    rz += @as(VFt, @splat(self.transform.fields[3][2]));
 
     return self.o.vDistance(rx, ry, rz);
 }

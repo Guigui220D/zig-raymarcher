@@ -2,8 +2,9 @@
 const std = @import("std");
 const zlm = @import("zlm").as(Ft);
 const Object = @import("../object.zig").Object;
-const vec = @import("../vector.zig");
-const Ft = @import("../settings.zig").Ft;
+const types = @import("../types.zig");
+const VFt = types.VFt;
+const Ft = types.Ft;
 
 const Meld = @This();
 
@@ -33,7 +34,7 @@ pub fn distance(self: Meld, pos: zlm.Vec3) Ft {
 }
 
 /// Calculates the distance from this object (vectorized)
-pub fn vDistance(self: Meld, x: vec.VFt, y: vec.VFt, z: vec.VFt) vec.VFt {
+pub fn vDistance(self: Meld, x: VFt, y: VFt, z: VFt) VFt {
     const a = self.a.vDistance(x, y, z);
     const b = self.b.vDistance(x, y, z);
 
@@ -57,13 +58,13 @@ inline fn softmin(a: Ft, b: Ft, k: Ft) Ft {
 }
 
 /// Softmax function that the meld is based on
-inline fn vSoftmax(a: vec.VFt, b: vec.VFt, k: Ft) vec.VFt {
+inline fn vSoftmax(a: VFt, b: VFt, k: Ft) VFt {
     const m = @max(a, b);
-    return m + @log(@exp(@as(vec.VFt, @splat(k)) * (a - m)) + @exp(@as(vec.VFt, @splat(k)) * (b - m))) / @as(vec.VFt, @splat(k));
+    return m + @log(@exp(@as(VFt, @splat(k)) * (a - m)) + @exp(@as(VFt, @splat(k)) * (b - m))) / @as(VFt, @splat(k));
 }
 
 /// Softmin function using softmax
-inline fn vSoftmin(a: vec.VFt, b: vec.VFt, k: Ft) vec.VFt {
+inline fn vSoftmin(a: VFt, b: VFt, k: Ft) VFt {
     return -vSoftmax(-a, -b, k);
 }
 

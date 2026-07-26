@@ -2,7 +2,7 @@
 const std = @import("std");
 const zlm = @import("zlm").as(Ft);
 const img = @import("zigimg");
-const Ft = @import("settings.zig").Ft;
+const Ft = @import("types.zig").Ft;
 
 const Color = @import("color.zig").Color;
 const CssColor = @import("csscolorparser").Color(f32);

@@ -10,9 +10,10 @@ const Canvas = @import("Canvas.zig");
 const Scene = @import("Scene.zig");
 const Camera = @import("Camera.zig");
 const CacheMindfulIterator = @import("cache_mindful.zig").Iterator(Ray);
-const vector = @import("vector.zig");
-const settings = @import("settings.zig");
-const Ft = settings.Ft;
+const Settings = @import("Settings.zig");
+const settings = &Settings.current;
+const types = @import("types.zig");
+const Ft = types.Ft;
 
 const RayLoad = @This();
 
@@ -61,7 +62,7 @@ pub fn refillFromCanvas(self: *RayLoad) !bool {
 
     try self.rays.ensureUnusedCapacity(self.alloc, self.canvas.height * self.canvas.width * 2);
 
-    std.log.debug("Work cursor at {}\n", .{self.current_work_cursor});
+    //std.log.debug("Work cursor at {}", .{self.current_work_cursor});
     // TODO: vectorized version
     //self.rays.resize(self.alloc, self.work_len);
     for (self.current_work_cursor..@min((self.current_work_cursor + self.work_len), self.canvas.height * self.canvas.width)) |i| {
@@ -84,7 +85,7 @@ pub fn refillFromCanvas(self: *RayLoad) !bool {
         self.rays.appendAssumeCapacity(.initForPixel(self.camera.origin, actual_dir.normalize(), x, y, self.canvas));
     }
 
-    while (self.rays.len % settings.vec_len != 0) // TODO: can be assumed if work_len is the right size
+    while (self.rays.len % types.vec_len != 0) // TODO: can be assumed if work_len is the right size
         self.rays.appendAssumeCapacity(.dummy);
 
     self.current_work_cursor += self.work_len;
@@ -111,26 +112,26 @@ pub fn computeDistances(self: *RayLoad) void {
         const sc: []u16 = slice.items(.steps_closer);
 
         var i: usize = 0;
-        while (i < x.len) : (i += settings.vec_len) {
-            const v_x: vector.VFt = x[i..][0..settings.vec_len].*;
-            const v_y: vector.VFt = y[i..][0..settings.vec_len].*;
-            const v_z: vector.VFt = z[i..][0..settings.vec_len].*;
-            var v_d: vector.VFt = d[i..][0..settings.vec_len].*;
-            var v_m: vector.Vu8 = m[i..][0..settings.vec_len].*;
-            const v_ts: vector.Vu16 = ts[i..][0..settings.vec_len].*;
-            const v_sc: vector.Vu16 = sc[i..][0..settings.vec_len].*;
+        while (i < x.len) : (i += types.vec_len) {
+            const v_x: types.VFt = x[i..][0..types.vec_len].*;
+            const v_y: types.VFt = y[i..][0..types.vec_len].*;
+            const v_z: types.VFt = z[i..][0..types.vec_len].*;
+            var v_d: types.VFt = d[i..][0..types.vec_len].*;
+            var v_m: types.Vu8 = m[i..][0..types.vec_len].*;
+            const v_ts: types.Vu16 = ts[i..][0..types.vec_len].*;
+            const v_sc: types.Vu16 = sc[i..][0..types.vec_len].*;
 
             if (@reduce(.And, Ray.vStopped(v_x, v_y, v_z, v_d, v_ts, v_sc)))
                 continue;
 
-            const v_newd: vector.VFt = renderable.object.vDistance(v_x, v_y, v_z);
+            const v_newd: types.VFt = renderable.object.vDistance(v_x, v_y, v_z);
 
             const v_pred = v_newd < v_d;
             v_d = @select(Ft, v_pred, v_newd, v_d);
-            v_m = @select(u8, v_pred, @as(vector.Vu8, @splat(@truncate(ren_id))), v_m);
+            v_m = @select(u8, v_pred, @as(types.Vu8, @splat(@truncate(ren_id))), v_m);
 
-            d[i..][0..settings.vec_len].* = v_d;
-            m[i..][0..settings.vec_len].* = v_m;
+            d[i..][0..types.vec_len].* = v_d;
+            m[i..][0..types.vec_len].* = v_m;
         }
     }
 }
@@ -141,26 +142,26 @@ pub fn update(self: *RayLoad, io: std.Io, clock: std.Io.Clock) !void {
     var i: usize = 0;
     while (i < self.rays.len) {
         // Make sure we can fill vectors
-        while (i + settings.vec_len > self.rays.len)
+        while (i + types.vec_len > self.rays.len)
             self.rays.appendAssumeCapacity(.dummy);
 
         const slice = self.rays.slice();
-        const v_d: vector.VFt = slice.items(.min_dist)[i..][0..settings.vec_len].*;
-        const v_ts: vector.Vu16 = slice.items(.total_steps)[i..][0..settings.vec_len].*;
-        const v_sc: vector.Vu16 = slice.items(.steps_closer)[i..][0..settings.vec_len].*;
-        const v_x: vector.VFt = slice.items(.pos_x)[i..][0..settings.vec_len].*;
-        const v_y: vector.VFt = slice.items(.pos_y)[i..][0..settings.vec_len].*;
-        const v_z: vector.VFt = slice.items(.pos_z)[i..][0..settings.vec_len].*;
+        const v_d: types.VFt = slice.items(.min_dist)[i..][0..types.vec_len].*;
+        const v_ts: types.Vu16 = slice.items(.total_steps)[i..][0..types.vec_len].*;
+        const v_sc: types.Vu16 = slice.items(.steps_closer)[i..][0..types.vec_len].*;
+        const v_x: types.VFt = slice.items(.pos_x)[i..][0..types.vec_len].*;
+        const v_y: types.VFt = slice.items(.pos_y)[i..][0..types.vec_len].*;
+        const v_z: types.VFt = slice.items(.pos_z)[i..][0..types.vec_len].*;
 
         const v_stop = Ray.vStopped(v_x, v_y, v_z, v_d, v_ts, v_sc);
         var all_stop = true; // Flags that the whole vector will be removed
-        var progress: usize = settings.vec_len;
+        var progress: usize = types.vec_len;
 
         // could use VPCOMPRESSD on AVX512
         // For each stopped ray, apply results
         // Not great!!! we are checking some values several times
         // TODO: can we do that without an inline loop?
-        inline for (0..settings.vec_len) |j| {
+        inline for (0..types.vec_len) |j| {
             if (v_stop[j]) {
                 const index = j + i;
                 // TODO: we could do it several time until we get a non finished vector
@@ -176,7 +177,7 @@ pub fn update(self: *RayLoad, io: std.Io, clock: std.Io.Clock) !void {
                 const continued = try ray.hit(self.info_arena.allocator(), &self.rays, &ren, self.scene.materials, normal);
                 if (continued)
                     all_stop = false;
-                if (i + settings.vec_len >= self.rays.len) {
+                if (i + types.vec_len >= self.rays.len) {
                     self.rays.set(index, .dummy);
                 } else {
                     if (i < progress)
@@ -188,8 +189,8 @@ pub fn update(self: *RayLoad, io: std.Io, clock: std.Io.Clock) !void {
             }
         }
 
-        if (i + settings.vec_len == self.rays.len and all_stop) // TODO: is this still correct now that stopped vectors can reflect?
-            self.rays.shrinkRetainingCapacity(self.rays.len - settings.vec_len);
+        if (i + types.vec_len == self.rays.len and all_stop) // TODO: is this still correct now that stopped vectors can reflect?
+            self.rays.shrinkRetainingCapacity(self.rays.len - types.vec_len);
 
         // We can safely advance the cursor by how many non finished rays there were first
         i += progress;
