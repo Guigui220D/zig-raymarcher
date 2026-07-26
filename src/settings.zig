@@ -51,12 +51,12 @@ pub const vec_len = std.simd.suggestVectorLength(u16) orelse 8;
 
 /// Dump to the logs the important settings
 pub fn reportSettings() void {
-    std.debug.print("Settings:\n", .{});
-    std.debug.print("- Vector length: {}\n", .{vec_len});
-    std.debug.print("- Hit distance:{}\n", .{hit_distance});
-    std.debug.print("- Max ray steps: {} (getting closer: {})\n", .{ max_steps, max_steps_getting_closer });
-    std.debug.print("- Max recursions: {}\n", .{max_recursions});
-    std.debug.print("- Max ray distance: {}\n", .{scene_boundaries});
+    std.log.info("Settings:", .{});
+    std.log.info("- Vector length: {}", .{vec_len});
+    std.log.info("- Hit distance: {}", .{hit_distance});
+    std.log.info("- Max ray steps: {} (getting closer: {})", .{ max_steps, max_steps_getting_closer });
+    std.log.info("- Max recursions: {}", .{max_recursions});
+    std.log.info("- Max ray distance: {}", .{scene_boundaries});
     // TODO: indicate if a file will be outputted, where, and what format
-    std.debug.print("- Output format (width, height): {},{}\n", .{ pic_width, pic_height });
+    std.log.info("- Output format (width, height): {},{}", .{ pic_width, pic_height });
 }

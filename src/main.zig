@@ -56,7 +56,7 @@ pub fn main(init: std.process.Init) !void {
 
     // TODO: do that elsewhere
     if (settings.preview) {
-        std.debug.print("/!\\ Running in preview mode!\n", .{});
+        std.log.warn("Running in preview mode!", .{});
         settings.max_steps /= 2;
         settings.max_recursions /= 2;
         settings.max_steps_getting_closer = settings.max_steps * 2;
@@ -68,14 +68,14 @@ pub fn main(init: std.process.Init) !void {
     const node = std.Progress.start(io, .{ .root_name = "render", .disable_printing = false });
     settings.reportSettings();
 
-    std.debug.print("Scene path: {s}\n", .{scene_path});
+    std.log.info("Scene path: {s}", .{scene_path});
 
     { // Try to create render folder
         const cwd = std.Io.Dir.cwd();
         cwd.createDir(io, "render", .default_dir) catch {};
     }
 
-    std.debug.print("Preparing the scene...\n", .{});
+    std.log.info("Preparing the scene...", .{});
 
     const scene: Scene = try scene_loader.loadSceneFromPath(alloc, io, scene_path);
     defer scene.deinit();
@@ -99,36 +99,37 @@ pub fn main(init: std.process.Init) !void {
     cam.origin = campos;
     cam.direction = camdir;
 
-    std.debug.print("Rendering frame...\n", .{});
+    std.log.info("Rendering frame...", .{});
 
     if (settings.benchmark) {
         var canvas = try Canvas.init(alloc, 200, 200);
         defer canvas.deinit();
 
-        std.debug.print("Benchmarking!\nWarmup...\n", .{});
+        std.log.info("Benchmarking!", .{});
+        std.log.info("Warmup...", .{});
         // Warmup run
         _ = try raymarcher.render(alloc, io, scene, canvas, .{}, &skybox, node);
 
-        std.debug.print("Doing {} runs...\n", .{settings.benchmark_it});
+        std.log.info("Doing {} runs...", .{settings.benchmark_it});
         var sum: i64 = 0;
         for (0..settings.benchmark_it) |_| {
             sum += try raymarcher.render(alloc, io, scene, canvas, .{}, &skybox, node);
         }
-        std.debug.print("Done! Avg {} ms per run\n", .{@divFloor(sum, @as(i64, @intCast(settings.benchmark_it)) * 1000)});
+        std.log.info("Done! Avg {} ms per run", .{@divFloor(sum, @as(i64, @intCast(settings.benchmark_it)) * 1000)});
     } else {
         var canvas = try Canvas.init(alloc, settings.pic_width, settings.pic_height);
         defer canvas.deinit();
 
         const time = try raymarcher.render(alloc, io, scene, canvas, .{}, &skybox, node);
 
-        std.debug.print("Done in {} ms\n", .{@divFloor(time, 1000)});
+        std.log.info("Done in {} ms", .{@divFloor(time, 1000)});
         canvas.adjustColors();
 
-        std.debug.print("Saving...\n", .{});
+        std.log.info("Saving...", .{});
         // TODO: by default, include date in file output name
         // TODO: make a text file with metadata on the picture? settings, performance etc
         try image_save.saveAs(alloc, io, &canvas, "render/frame.png");
-        std.debug.print("Frame saved to render/frame.png.\n", .{});
+        std.log.info("Frame saved to render/frame.png.", .{});
     }
 }
 

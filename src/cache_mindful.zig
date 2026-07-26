@@ -12,7 +12,7 @@ pub fn Iterator(T: type) type {
         slice: []T,
 
         pub fn init(slice: []T) @This() {
-            //std.debug.print("Elems per slice: {}, total elems: {}, number of slices: {}\n", .{ elem_per_slice, slice.len, slice.len / elem_per_slice });
+            //std.log.debug("Elems per slice: {}, total elems: {}, number of slices: {}\n", .{ elem_per_slice, slice.len, slice.len / elem_per_slice });
             return .{ .slice = slice };
         }
 

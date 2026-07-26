@@ -1,3 +1,4 @@
+//! Skybox class for fetching skybox color from a direction vector
 const std = @import("std");
 const zlm = @import("zlm").as(Ft);
 const img = @import("zigimg");
@@ -8,14 +9,23 @@ const CssColor = @import("csscolorparser").Color(f32);
 
 const Skybox = @This();
 
+/// Top of the cubemap (+y)
 up: img.Image,
+/// Bottom of the cubemap (-y)
 down: img.Image,
+/// Left of the cubemap (-x)
 left: img.Image,
+/// Right of the cubemap (+x)
 right: img.Image,
+/// Front of the cubemap (+z)
 front: img.Image,
+/// Back of the cubemap (-z)
 back: img.Image,
+/// Flag set if only the up image is used everywhere (other can be undefined then)
 single_img: bool,
 
+// TODO: more flexible
+/// Inits a skybox from a folder containing files named [pos/neg][x/y/z].jpg
 pub fn init(alloc: std.mem.Allocator, io: std.Io, base_path: []const u8) !Skybox {
     const up_path = try std.fmt.allocPrint(alloc, "{s}/posy.jpg", .{base_path});
     defer alloc.free(up_path);
@@ -54,6 +64,7 @@ pub fn init(alloc: std.mem.Allocator, io: std.Io, base_path: []const u8) !Skybox
     };
 }
 
+/// Inits a skybox from a single color
 pub fn initColor(alloc: std.mem.Allocator, _: std.Io, color: CssColor) !Skybox {
     const image = try img.Image.create(alloc, 1, 1, .bgra32);
     image.pixels.bgra32[0] = .{
@@ -73,10 +84,11 @@ pub fn initColor(alloc: std.mem.Allocator, _: std.Io, color: CssColor) !Skybox {
     };
 }
 
+/// Loads an image from a path and checks the color format and that it is square
 fn loadImageCheck(alloc: std.mem.Allocator, io: std.Io, path: []const u8) !img.Image {
     var buf: [1024]u8 = undefined;
 
-    std.debug.print("Skybox: loading {s}\n", .{path});
+    std.log.debug("Skybox: loading {s}", .{path});
     var image = try img.Image.fromFilePath(alloc, io, path, &buf);
     errdefer image.deinit(alloc);
 
@@ -89,6 +101,7 @@ fn loadImageCheck(alloc: std.mem.Allocator, io: std.Io, path: []const u8) !img.I
     return image;
 }
 
+/// Deinits a skybox
 pub fn deinit(self: *Skybox, alloc: std.mem.Allocator) void {
     self.up.deinit(alloc);
     if (!self.single_img) {
@@ -100,15 +113,23 @@ pub fn deinit(self: *Skybox, alloc: std.mem.Allocator) void {
     }
 }
 
-pub const Direction = enum {
+/// All 6 directions (faces of the cubemap)
+const Direction = enum {
+    /// Up (+y)
     up,
+    /// Down (-y)
     down,
+    /// Left (-x)
     left,
+    /// Right (+x)
     right,
+    /// Front (+z)
     front,
+    /// Back (-z)
     back,
 };
 
+/// Gets the major direction of a vector
 fn getDirection(vector: zlm.Vec3) Direction {
     // Find greater direction
     if (@abs(vector.x) > @abs(vector.y)) {
@@ -130,6 +151,7 @@ fn getDirection(vector: zlm.Vec3) Direction {
     }
 }
 
+/// Gets a color from the skybox using a direction
 pub fn fetchColor(self: *const Skybox, vector: zlm.Vec3) Color {
     const dir = getDirection(vector);
 

@@ -61,7 +61,7 @@ pub fn refillFromCanvas(self: *RayLoad) !bool {
 
     try self.rays.ensureUnusedCapacity(self.alloc, self.canvas.height * self.canvas.width * 2);
 
-    //std.debug.print("Work cursor at {}\n", .{self.current_work_cursor});
+    std.log.debug("Work cursor at {}\n", .{self.current_work_cursor});
     // TODO: vectorized version
     //self.rays.resize(self.alloc, self.work_len);
     for (self.current_work_cursor..@min((self.current_work_cursor + self.work_len), self.canvas.height * self.canvas.width)) |i| {
@@ -193,7 +193,7 @@ pub fn update(self: *RayLoad, io: std.Io, clock: std.Io.Clock) !void {
 
         // We can safely advance the cursor by how many non finished rays there were first
         i += progress;
-        //std.debug.print("Left: {}\n", .{self.rays.len});
+        //std.log.debug("Left: {}\n", .{self.rays.len});
     }
 
     if (self.report) |writer| {
@@ -221,7 +221,7 @@ pub fn update(self: *RayLoad, io: std.Io, clock: std.Io.Clock) !void {
         try writer.flush();
     }
 
-    //std.debug.print("Progress ({})\n", .{self.rays.len});
+    //std.log.debug("Progress ({})\n", .{self.rays.len});
     // TODO Could this be before? I don't think it would cost anything
     // Would avoid ambiguities with added rays
     Ray.vProgress(&self.rays.slice());

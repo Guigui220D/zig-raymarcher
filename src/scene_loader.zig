@@ -257,7 +257,7 @@ fn readMaterial(value: *std.json.Value) !Material {
 // TODO: avoid anyerror, define set
 /// Read transform object from the JSON scene
 fn readTransformObject(alloc: std.mem.Allocator, object: *const std.json.ObjectMap) anyerror!Object {
-    //std.debug.print("Reading transform object...\n", .{});
+    std.log.debug("Reading transform object...", .{});
 
     // Default values
     var rotate: zlm.Vec3 = .zero;
@@ -307,7 +307,7 @@ fn readTransformObject(alloc: std.mem.Allocator, object: *const std.json.ObjectM
 
 /// Read primitive object from the JSON scene
 fn readPrimitiveObject(_: std.mem.Allocator, object: *const std.json.ObjectMap) anyerror!Object {
-    //std.debug.print("Reading primitive object...\n", .{});
+    std.log.debug("Reading primitive object...", .{});
     // Get type
     const type_name = object.get("primitive") orelse return error.BadPrimitiveJson;
     if (type_name != .string)
@@ -320,7 +320,7 @@ fn readPrimitiveObject(_: std.mem.Allocator, object: *const std.json.ObjectMap) 
 
 /// Read CSG object from the JSON scene
 fn readCSGObject(alloc: std.mem.Allocator, object: *const std.json.ObjectMap) anyerror!Object {
-    //std.debug.print("Reading CSG object...\n", .{});
+    std.log.debug("Reading CSG object...", .{});
     // Get type
     const type_name = object.get("csg") orelse return error.BadCsgJson;
     if (type_name != .string)
@@ -359,7 +359,7 @@ fn readCSGObject(alloc: std.mem.Allocator, object: *const std.json.ObjectMap) an
 
 /// Read repeat object from the JSON scene
 fn readRepeatObject(alloc: std.mem.Allocator, object: *const std.json.ObjectMap) anyerror!Object {
-    //std.debug.print("Reading repeat object...\n", .{});
+    std.log.debug("Reading repeat object...", .{});
     // Get axis
     const axis = object.get("axis") orelse return error.BadRepeatJson;
     if (axis != .string)
@@ -394,7 +394,7 @@ fn readRepeatObject(alloc: std.mem.Allocator, object: *const std.json.ObjectMap)
 
 /// Read meld object from the JSON scene
 fn readMeldObject(alloc: std.mem.Allocator, object: *const std.json.ObjectMap) anyerror!Object {
-    //std.debug.print("Reading meld object...\n", .{});
+    std.log.debug("Reading meld object...", .{});
 
     // Get objects
     const obj_def1 = object.get("object1") orelse return error.BadMeldJson;
@@ -420,7 +420,7 @@ fn readMeldObject(alloc: std.mem.Allocator, object: *const std.json.ObjectMap) a
 
 /// Read negate object from the JSON scene
 fn readNegateObject(alloc: std.mem.Allocator, object: *const std.json.ObjectMap) anyerror!Object {
-    //std.debug.print("Reading negate object...\n", .{});
+    std.log.debug("Reading negate object...", .{});
     // Get object
     const obj_def = object.get("object") orelse return error.BadTransformJson;
     const obj = try readObject(alloc, &obj_def);
@@ -462,7 +462,7 @@ fn readColor(value: *const std.json.Value) !Color {
         return error.BadColorJson;
 
     const color = csscolorparser.Color(f32).parse(value.string) catch |e| {
-        std.debug.print("Error {} while parsing color \"{s}\".\n", .{ e, value.string });
+        std.log.erro("Error {} while parsing color \"{s}\".", .{ e, value.string });
         return error.BadColorJson;
     };
 

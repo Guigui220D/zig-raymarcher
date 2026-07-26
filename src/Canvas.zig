@@ -1,12 +1,18 @@
+//! Canvas for the renderer to write on
 const std = @import("std");
 const Canvas = @import("Canvas.zig");
 const Color = @import("color.zig").Color;
 
+/// Width of the image in pixels
 width: usize,
+/// Height of the image in pixels
 height: usize,
+/// Data as an row-major array
 data: []Color,
+/// Allocator for easy deinit
 allocator: std.mem.Allocator,
 
+/// Initializes a new canvas (pixels are undefined)
 pub fn init(allocator: std.mem.Allocator, width: usize, height: usize) !Canvas {
     return Canvas{
         .width = width,
@@ -16,10 +22,12 @@ pub fn init(allocator: std.mem.Allocator, width: usize, height: usize) !Canvas {
     };
 }
 
+/// Deinits the canvas
 pub fn deinit(self: Canvas) void {
     self.allocator.free(self.data);
 }
 
+/// Makes sure all the colors fit within [0,1]
 pub fn adjustColors(self: *Canvas) void {
     var floats: []f32 = undefined;
     floats.ptr = @ptrCast(&self.data[0]);
@@ -29,7 +37,7 @@ pub fn adjustColors(self: *Canvas) void {
 
     const range = max - min;
 
-    std.debug.print("adjust colors: min: {}; max: {}\n", .{ min, max });
+    std.log.debug("Adjust colors: min: {}; max: {}", .{ min, max });
 
     for (self.data) |*col| {
         col.adjust(min, range);
