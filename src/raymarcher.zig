@@ -1,3 +1,4 @@
+//! Raymarcher file, the root of functions to raymarch
 const std = @import("std");
 const math = std.math;
 
@@ -17,6 +18,7 @@ var current_canvas: Canvas = undefined;
 var current_camera: Camera = .{};
 var current_skybox: *const Skybox = undefined;
 
+/// Renders a scene to a canvas
 pub fn render(alloc: std.mem.Allocator, io: std.Io, scene: Scene, canvas: Canvas, camera: Camera, skybox: *const Skybox, parent_node: std.Progress.Node) !i64 {
     if (canvas.width == 0 or canvas.height == 0)
         return error.canvasWrongFormat;
@@ -75,4 +77,4 @@ pub fn render(alloc: std.mem.Allocator, io: std.Io, scene: Scene, canvas: Canvas
     return dur.toMicroseconds();
 }
 
-//Guillaume Derex 2020-2026
+// Copyright Guillaume Derex 2020-2026 (GPL-3.0)

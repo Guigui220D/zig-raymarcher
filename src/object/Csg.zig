@@ -51,4 +51,4 @@ pub fn vDistance(self: Csg, x: VFt, y: VFt, z: VFt) VFt {
     };
 }
 
-//Guillaume Derex 2020-2026
+// Copyright Guillaume Derex 2020-2026 (GPL-3.0)

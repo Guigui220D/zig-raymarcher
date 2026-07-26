@@ -72,4 +72,4 @@ inline fn vRepeatFunction(val: VFt, mod: Ft) VFt {
     return @mod(val + @as(VFt, @splat(mod / 2)), @as(VFt, @splat(mod))) - @as(VFt, @splat(mod / 2));
 }
 
-//Guillaume Derex 2020-2026
+// Copyright Guillaume Derex 2020-2026 (GPL-3.0)

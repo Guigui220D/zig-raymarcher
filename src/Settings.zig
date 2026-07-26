@@ -93,3 +93,5 @@ pub fn reportSettings(self: Settings) void {
     // TODO: indicate if a file will be outputted, where, and what format
     std.log.info("- Output format (width, height): {},{}", .{ self.pic_width, self.pic_height });
 }
+
+// Copyright Guillaume Derex 2020-2026 (GPL-3.0)

@@ -44,4 +44,4 @@ pub fn adjustColors(self: *Canvas) void {
     }
 }
 
-//Guillaume Derex 2026
+// Copyright Guillaume Derex 2020-2026 (GPL-3.0)

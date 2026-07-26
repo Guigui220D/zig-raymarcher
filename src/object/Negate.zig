@@ -28,4 +28,4 @@ pub fn vDistance(self: Negate, x: VFt, y: VFt, z: VFt) VFt {
     return -self.o.vDistance(x, y, z);
 }
 
-//Guillaume Derex 2020-2026
+// Copyright Guillaume Derex 2020-2026 (GPL-3.0)

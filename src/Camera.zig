@@ -27,4 +27,4 @@ pub fn getX(self: @This()) zlm.Vec3 {
     return dir;
 }
 
-//Guillaume Derex 2026
+// Copyright Guillaume Derex 2020-2026 (GPL-3.0)

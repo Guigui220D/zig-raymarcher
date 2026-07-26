@@ -31,3 +31,5 @@ pub fn Iterator(T: type) type {
         }
     };
 }
+
+// Copyright Guillaume Derex 2020-2026 (GPL-3.0)

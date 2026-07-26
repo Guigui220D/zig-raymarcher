@@ -17,4 +17,4 @@ pub fn saveAs(alloc: std.mem.Allocator, io: std.Io, canvas: *Canvas, path: []con
     try image.writeToFilePath(alloc, io, path, &.{}, .{ .png = .{} });
 }
 
-//Guillaume Derex 2026
+// Copyright Guillaume Derex 2020-2026 (GPL-3.0)

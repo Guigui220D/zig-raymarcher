@@ -483,4 +483,4 @@ fn readScalar(FloatT: type, value: *const std.json.Value) !FloatT {
     };
 }
 
-//Guillaume Derex
+// Copyright Guillaume Derex 2020-2026 (GPL-3.0)

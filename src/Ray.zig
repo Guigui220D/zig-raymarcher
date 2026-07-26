@@ -173,4 +173,4 @@ pub fn hit(self: Ray, alloc: std.mem.Allocator, rays: *Rays, obj: *const Rendera
     return try self.target.hit(alloc, mat, self, rays, normal);
 }
 
-//Guillaume Derex 2020-2026
+// Copyright Guillaume Derex 2020-2026 (GPL-3.0)

@@ -68,4 +68,4 @@ inline fn vSoftmin(a: VFt, b: VFt, k: Ft) VFt {
     return -vSoftmax(-a, -b, k);
 }
 
-//Guillaume Derex 2020-2026
+// Copyright Guillaume Derex 2020-2026 (GPL-3.0)

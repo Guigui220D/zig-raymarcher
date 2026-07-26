@@ -227,3 +227,5 @@ pub fn update(self: *RayLoad, io: std.Io, clock: std.Io.Clock) !void {
     // Would avoid ambiguities with added rays
     Ray.vProgress(&self.rays.slice());
 }
+
+// Copyright Guillaume Derex 2020-2026 (GPL-3.0)

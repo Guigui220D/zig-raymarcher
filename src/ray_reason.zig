@@ -192,3 +192,5 @@ pub const FinalPixel = struct {
         self.canvas.data[self.pix_y * self.canvas.width + self.pix_x] = col;
     }
 };
+
+// Copyright Guillaume Derex 2020-2026 (GPL-3.0)

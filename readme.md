@@ -2,6 +2,8 @@
 
 A raymarcher I'm writing in Zig, that runs on the CPU and renders scenes described in Json.
 
+This project is licensed under the GNU General Public License v3.0 (GPL-3.0-or-later). See the LICENSE file for details.
+
 ### Todo
 
 - [x] render basic shapes with no shader

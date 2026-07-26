@@ -59,4 +59,4 @@ pub fn vDistance(self: Transform, x: VFt, y: VFt, z: VFt) VFt {
     return self.o.vDistance(rx, ry, rz);
 }
 
-//Guillaume Derex 2020-2026
+// Copyright Guillaume Derex 2020-2026 (GPL-3.0)

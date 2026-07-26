@@ -216,4 +216,4 @@ pub fn fetchColor(self: *const Skybox, vector: zlm.Vec3) Color {
     }
 }
 
-//Guillaume Derex
+// Copyright Guillaume Derex 2020-2026 (GPL-3.0)

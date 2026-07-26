@@ -7,4 +7,4 @@ object: Object,
 material_id: u8,
 enabled: bool,
 
-//Guillaume Derex 2026
+// Copyright Guillaume Derex 2020-2026 (GPL-3.0)
