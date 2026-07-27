@@ -108,8 +108,6 @@ pub fn computeDistances(self: *RayLoad) void {
         const z: []const Ft = slice.items(.pos_z);
         const d: []Ft = slice.items(.min_dist);
         const m: []u8 = slice.items(.closest_object);
-        const ts: []u16 = slice.items(.total_steps);
-        const sc: []u16 = slice.items(.steps_closer);
 
         var i: usize = 0;
         while (i < x.len) : (i += types.vec_len) {
@@ -118,11 +116,6 @@ pub fn computeDistances(self: *RayLoad) void {
             const v_z: types.VFt = z[i..][0..types.vec_len].*;
             var v_d: types.VFt = d[i..][0..types.vec_len].*;
             var v_m: types.Vu8 = m[i..][0..types.vec_len].*;
-            const v_ts: types.Vu16 = ts[i..][0..types.vec_len].*;
-            const v_sc: types.Vu16 = sc[i..][0..types.vec_len].*;
-
-            if (@reduce(.And, Ray.vStopped(v_x, v_y, v_z, v_d, v_ts, v_sc)))
-                continue;
 
             const v_newd: types.VFt = renderable.object.vDistance(v_x, v_y, v_z);
 

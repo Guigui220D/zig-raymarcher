@@ -82,7 +82,7 @@ pic_width: usize = 1000,
 /// Height of the image output in pixels (doesn't apply when benchmarking)
 pic_height: usize = 1000,
 /// Max x,y,z coordinates until a ray is given up on
-scene_boundaries: Ft = 100, // TODO: turn that into max distance
+scene_boundaries: Ft = 100,
 
 /// Dump to the logs the important settings
 pub fn reportSettings(self: Settings) void {
