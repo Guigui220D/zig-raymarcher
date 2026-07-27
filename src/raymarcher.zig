@@ -12,6 +12,7 @@ const RayLoad = @import("RayLoad.zig");
 const Renderable = @import("Renderable.zig");
 const Scene = @import("Scene.zig");
 const Skybox = @import("Skybox.zig");
+const Settings = @import("Settings.zig");
 
 var current_scene: Scene = undefined;
 var current_canvas: Canvas = undefined;
@@ -37,7 +38,13 @@ pub fn render(alloc: std.mem.Allocator, io: std.Io, scene: Scene, canvas: Canvas
     const writer = &fwriter.interface;
 
     // Init one ray per pixel
-    var rayload: RayLoad = try .init(alloc, &canvas, &camera, &scene, writer);
+    var rayload: RayLoad = try .init(
+        alloc,
+        &canvas,
+        &camera,
+        &scene,
+        if (Settings.report_rayload_composition) writer else null,
+    );
     defer rayload.deinit();
 
     var total_rays = rayload.rays.len;

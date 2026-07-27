@@ -29,7 +29,7 @@ pub const dummy = Ray{
     .dir_x = 1,
     .dir_y = 0,
     .dir_z = 0,
-    .target = .{ .dummy = {} },
+    .target = .dummy,
     .min_dist = 0,
 };
 
@@ -66,10 +66,13 @@ pub fn initForPixel(pos: zlm.Vec3, dir: zlm.Vec3, px: usize, py: usize, canvas: 
         .dir_y = dir.y,
         .dir_z = dir.z,
         .target = .{
-            .pixel = .{
-                .canvas = canvas,
-                .pix_x = px,
-                .pix_y = py,
+            .contribution = 1,
+            .dest = .{
+                .pixel = .{
+                    .canvas = canvas,
+                    .pix_x = px,
+                    .pix_y = py,
+                },
             },
         },
     };

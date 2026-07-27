@@ -62,13 +62,27 @@ pub const ResultStorage = struct {
     }
 };
 
-/// This union indicates what a ray is looking for
-pub const Target = union(enum) {
-    pixel: FinalPixel, // This ray is targetting a screen pixel
-    reflected: *ResultStorage, // This ray is from a reflection
-    //refracted: *ResultStorage, // This ray is from a refraction
-    light_fetch: *ResultStorage, // This ray is aiming at a lightsource
-    dummy: void,
+/// Metadata for rays to know what they are contributing to
+pub const Target = struct {
+    /// Dummy ray for padding
+    pub const dummy = Target{
+        .dest = .dummy,
+        .contribution = 0,
+    };
+
+    /// Union of possible destinations for the result
+    pub const Destination = union(enum) {
+        pixel: FinalPixel, // This ray is targetting a screen pixel
+        reflected: *ResultStorage, // This ray is from a reflection
+        //refracted: *ResultStorage, // This ray is from a refraction
+        light_fetch: *ResultStorage, // This ray is aiming at a lightsource
+        dummy: void, // This ray doesn't do anything
+    };
+
+    /// Destination of the result
+    dest: Destination,
+    /// How many % of a pixel we will contribute to, at most
+    contribution: f32,
 
     /// Called when the ray hits a surface. Sends more rays recursively for context.
     pub fn hit(self: Target, alloc: std.mem.Allocator, material: ?Material, ray: Ray, rays: *Ray.Rays, normal: zlm.Vec3) !bool {
@@ -119,15 +133,23 @@ pub const Target = union(enum) {
                 result_storage.* = ResultStorage.init(mat, self, bounces_left - 1);
 
                 // TODO: do not forget to change when new reflectivity
-                // TODO: can we determine that a reflection's result won't affect the final result much and not throw a ray?
                 if (mat.reflectivity != 0) {
-                    var reflection = ray.reflect(normal, .{ .reflected = result_storage });
-                    // Necessary to escape hitting the same thing again
-                    reflection.pos_x += reflection.dir_x * settings.hit_distance * 1.1;
-                    reflection.pos_y += reflection.dir_y * settings.hit_distance * 1.1;
-                    reflection.pos_z += reflection.dir_z * settings.hit_distance * 1.1;
-                    rays.appendAssumeCapacity(reflection); // TODO: we cannot assume
-                    result_storage.expecting_reflection = true;
+                    // TODO: calculate contribution
+                    const contribution: f32 = self.contribution * mat.reflectivity;
+                    if (contribution > Settings.min_contribution) {
+                        // Send new ray because it is worth it
+                        const new_target = Target{
+                            .dest = .{ .reflected = result_storage },
+                            .contribution = contribution,
+                        };
+                        var reflection = ray.reflect(normal, new_target);
+                        // Necessary to escape hitting the same thing again
+                        reflection.pos_x += reflection.dir_x * settings.hit_distance * 1.1;
+                        reflection.pos_y += reflection.dir_y * settings.hit_distance * 1.1;
+                        reflection.pos_z += reflection.dir_z * settings.hit_distance * 1.1;
+                        rays.appendAssumeCapacity(reflection); // TODO: we cannot assume
+                        result_storage.expecting_reflection = true;
+                    }
                 }
 
                 if (result_storage.isDone()) {
@@ -148,7 +170,7 @@ pub const Target = union(enum) {
     /// Applies the obtained color to wherever it is needed
     fn apply(self: Target, col: Color) void {
         // Apply directly to the target
-        switch (self) {
+        switch (self.dest) {
             .pixel => |pix| pix.apply(col),
             .reflected => |sto| sto.reflected = col,
             //.refracted => |sto| sto.refracted = col,
@@ -160,7 +182,7 @@ pub const Target = union(enum) {
         }
 
         // Collapse tree if needed
-        switch (self) {
+        switch (self.dest) {
             .pixel => {},
             .dummy => {},
             inline else => |sto| if (sto.isDone()) {
@@ -172,7 +194,7 @@ pub const Target = union(enum) {
 
     /// Get how many more recursions we can do
     pub fn getDepth(self: Target) u8 {
-        return switch (self) {
+        return switch (self.dest) {
             .dummy => 0,
             .pixel => settings.max_recursions,
             .reflected => |sto| sto.max_bounces,

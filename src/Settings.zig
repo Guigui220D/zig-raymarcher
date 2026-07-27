@@ -26,6 +26,8 @@ pub const benchmark_it: usize = 5;
 pub const report_rayload_composition: bool = false;
 /// Changes what the output image will represent (see DebugMode)
 pub const debug_mode: DebugMode = .none;
+/// Minimum contribution for a ray to be worth it
+pub const min_contribution: f32 = 1.0 / 256.0;
 
 /// Current selected settings
 pub var current: Settings = default;

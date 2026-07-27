@@ -205,7 +205,7 @@ pub fn update(self: *RayLoad, io: std.Io, clock: std.Io.Clock) !void {
 
         const targets = self.rays.slice().items(.target);
         for (targets) |target| {
-            if (target == .dummy)
+            if (target.dest == .dummy)
                 continue;
             const depth = target.getDepth();
             bins[depth] += 1;
