@@ -127,9 +127,16 @@ pub fn computeDistances(self: *RayLoad) void {
             m[i..][0..types.vec_len].* = v_m;
         }
     }
+
+    // TODO: can we do the advance at the same time as the compute distances? avoid storing min dist altogether
 }
 
-/// Progress each ray based on the minimum distance we found, instanciate new rays or collapse results and remove rays-
+/// Move each ray based on the minimum distance we found
+pub fn advance(self: *RayLoad) void {
+    Ray.vProgress(&self.rays.slice());
+}
+
+/// Instanciate new rays or collapse results and remove rays when they hit or got lost
 pub fn update(self: *RayLoad, io: std.Io, clock: std.Io.Clock) !void {
     // Disgusting function! TODO: make it easier to understand
     var i: usize = 0;
@@ -161,12 +168,11 @@ pub fn update(self: *RayLoad, io: std.Io, clock: std.Io.Clock) !void {
                 // That would allow always progressing by vec_len, and avoiding re-checks
                 const ray = self.rays.get(index);
 
-                // TODO: get material info from the ray
-                // decide or not to recurse
-                // apply the color obtained from the ray to the
+                // Get closest object and normal to it
                 const ren = self.scene.objects[ray.closest_object];
                 const normal = ren.object.normal(.{ .x = ray.pos_x, .y = ray.pos_y, .z = ray.pos_z });
-                // TODO: there is unpredictable behavior on whether or not a newly inserted reflection ray will be progressed during this iteration
+
+                // Signal ray hit a place
                 const continued = try ray.hit(self.info_arena.allocator(), &self.rays, &ren, self.scene.materials, normal);
                 if (continued)
                     all_stop = false;
@@ -187,7 +193,6 @@ pub fn update(self: *RayLoad, io: std.Io, clock: std.Io.Clock) !void {
 
         // We can safely advance the cursor by how many non finished rays there were first
         i += progress;
-        //std.log.debug("Left: {}\n", .{self.rays.len});
     }
 
     if (self.report) |writer| {
@@ -216,9 +221,6 @@ pub fn update(self: *RayLoad, io: std.Io, clock: std.Io.Clock) !void {
     }
 
     //std.log.debug("Progress ({})\n", .{self.rays.len});
-    // TODO Could this be before? I don't think it would cost anything
-    // Would avoid ambiguities with added rays
-    Ray.vProgress(&self.rays.slice());
 }
 
 // Copyright Guillaume Derex 2020-2026 (GPL-3.0)

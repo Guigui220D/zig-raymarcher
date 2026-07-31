@@ -28,6 +28,10 @@ pub const report_rayload_composition: bool = false;
 pub const debug_mode: DebugMode = .none;
 /// Minimum contribution for a ray to be worth it
 pub const min_contribution: f32 = 1.0 / 256.0;
+/// How much of the min distance we actually advance
+pub const progress_factor = 0.999;
+/// How many progress steps we do until we check hits
+pub const steps_per_check = 5;
 
 /// Current selected settings
 pub var current: Settings = default;

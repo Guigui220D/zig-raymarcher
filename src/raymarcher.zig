@@ -58,13 +58,20 @@ pub fn render(alloc: std.mem.Allocator, io: std.Io, scene: Scene, canvas: Canvas
     while (try rayload.refillFromCanvas()) {
         // Progress each ray that exists once
         while (rayload.hasWork()) {
-            // For each object, update the rays distance
-            rayload.computeDistances();
+            // Do several steps before checking to save some ressources
+            for (0..Settings.steps_per_check) |_| {
+                // For each object, update the rays distance
+                rayload.computeDistances();
+
+                // Then advance them
+                rayload.advance();
+            }
 
             // Progress each ray based on the distances we found (or collapse results)
             try rayload.update(io, clock);
 
-            if (i % 4 == 3) {
+            // Update progress bar
+            {
                 const current_ray_count = rayload.rays.len;
                 if (current_ray_count > total_rays) {
                     total_rays = current_ray_count;

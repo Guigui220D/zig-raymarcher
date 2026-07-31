@@ -89,7 +89,6 @@ pub fn reflect(self: Ray, normal: zlm.Vec3, target: RayTarget) Ray {
         .dir_x = reflection.x,
         .dir_y = reflection.y,
         .dir_z = reflection.z,
-        .min_dist = settings.hit_distance * 1.01,
         .target = target,
     };
 }
@@ -151,9 +150,11 @@ pub fn vProgress(slice: *const std.MultiArrayList(Ray).Slice) void {
         var sc: types.Vu16 = sc_s[i..][0..types.vec_len].*;
         const md: types.VFt = md_s[i..][0..types.vec_len].*;
 
-        xp += xd * md;
-        yp += yd * md;
-        zp += zd * md;
+        // The predicate avoid some rays advancing beyond the wall
+        const pred = md > @as(types.VFt, @splat(settings.hit_distance));
+        xp += @select(Ft, pred, xd * md * @as(types.VFt, @splat(Settings.progress_factor)), @as(types.VFt, @splat(0)));
+        yp += @select(Ft, pred, yd * md * @as(types.VFt, @splat(Settings.progress_factor)), @as(types.VFt, @splat(0)));
+        zp += @select(Ft, pred, zd * md * @as(types.VFt, @splat(Settings.progress_factor)), @as(types.VFt, @splat(0)));
         ts += @as(types.Vu16, @splat(1));
         sc += @as(types.Vu16, @splat(1));
 
