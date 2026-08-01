@@ -19,19 +19,19 @@ pub const DebugMode = enum {
     rayinfo,
 };
 
+/// Version of the program
+pub const version = std.SemanticVersion{ .major = 0, .minor = 5, .patch = 1 };
 /// Number of renders we perform when benchmark is true
-pub const benchmark_it: usize = 5;
+pub var benchmark_it: usize = 5;
 /// Output info of the rays of a rayload at each update
 /// Slows down everything!!! only for analysis
 pub const report_rayload_composition: bool = false;
 /// Changes what the output image will represent (see DebugMode)
 pub const debug_mode: DebugMode = .none;
-/// Minimum contribution for a ray to be worth it
-pub const min_contribution: f32 = 1.0 / 256.0;
 /// How much of the min distance we actually advance
 pub const progress_factor = 0.999;
 /// How many progress steps we do until we check hits
-pub const steps_per_check = 5;
+pub var steps_per_check: usize = 6; // TODO: benchmark and fine tune value
 
 /// Current selected settings
 pub var current: Settings = default;
@@ -46,7 +46,7 @@ pub const preview: Settings = .{
     .hit_distance = default.hit_distance * 2,
     .max_steps = default.max_steps / 2,
     .max_steps_getting_closer = default.max_steps_getting_closer / 2,
-    .max_recursions = 1,
+    .max_recursions = 2,
     .pic_height = 500,
     .pic_width = 500,
 };
@@ -87,6 +87,8 @@ pic_width: usize = 1000,
 pic_height: usize = 1000,
 /// Max x,y,z coordinates until a ray is given up on
 scene_boundaries: Ft = 100,
+/// Minimum contribution for a ray to be worth it
+min_contribution: f32 = 1.0 / 256.0,
 
 /// Dump to the logs the important settings
 pub fn reportSettings(self: Settings) void {

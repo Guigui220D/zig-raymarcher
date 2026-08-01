@@ -7,6 +7,7 @@ pub fn build(b: *std.Build) void {
     const zlm_dep = b.dependency("zlm", .{});
     const zigimg_dep = b.dependency("zigimg", .{});
     const csscolorparser_dep = b.dependency("csscolorparser", .{});
+    const clap_dep = b.dependency("clap", .{});
 
     const exe = b.addExecutable(.{
         .name = "zig_raymarcher",
@@ -19,6 +20,7 @@ pub fn build(b: *std.Build) void {
                 .{ .name = "zlm", .module = zlm_dep.module("zlm") },
                 .{ .name = "zigimg", .module = zigimg_dep.module("zigimg") },
                 .{ .name = "csscolorparser", .module = csscolorparser_dep.module("csscolorparser") },
+                .{ .name = "clap", .module = clap_dep.module("clap") },
             },
         }),
         .use_llvm = true,

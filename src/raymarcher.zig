@@ -30,7 +30,7 @@ pub fn render(alloc: std.mem.Allocator, io: std.Io, scene: Scene, canvas: Canvas
     current_skybox = skybox;
 
     const cwd = std.Io.Dir.cwd();
-    var file = try cwd.createFile(io, "render/report.csv", .{});
+    var file = try cwd.createFile(io, "report.csv", .{});
     defer file.close(io);
     var buf: [512]u8 = undefined;
 

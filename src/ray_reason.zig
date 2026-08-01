@@ -136,7 +136,7 @@ pub const Target = struct {
                 if (mat.reflectivity != 0) {
                     // TODO: calculate contribution
                     const contribution: f32 = self.contribution * mat.reflectivity;
-                    if (contribution > Settings.min_contribution) {
+                    if (contribution > settings.min_contribution) {
                         // Send new ray because it is worth it
                         const new_target = Target{
                             .dest = .{ .reflected = result_storage },
