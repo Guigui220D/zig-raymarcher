@@ -138,6 +138,8 @@ pub fn advance(self: *RayLoad) void {
 
 /// Instanciate new rays or collapse results and remove rays when they hit or got lost
 pub fn update(self: *RayLoad, io: std.Io, clock: std.Io.Clock) !void {
+    // TODO: some pixels are unset!!! find bug
+
     // Disgusting function! TODO: make it easier to understand
     var i: usize = 0;
     while (i < self.rays.len) {

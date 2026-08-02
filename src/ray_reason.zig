@@ -119,6 +119,27 @@ pub const Target = struct {
                 });
                 return false;
             },
+            .hit_distance => {
+                const hd = ray.min_dist;
+                // TODO: these values only make sense because of the broken adjustColors function
+                if (hd > settings.hit_distance) {
+                    self.apply(.{
+                        .a = 1.0,
+                        .r = 0.0,
+                        .g = 0.0,
+                        .b = 1.0,
+                    });
+                    return false;
+                }
+
+                self.apply(.{
+                    .a = 1.0,
+                    .r = @abs(ray.min_dist) / settings.hit_distance,
+                    .g = if (hd < 0) 1.0 else 0,
+                    .b = 0.0,
+                });
+                return false;
+            },
             else => {},
         }
 

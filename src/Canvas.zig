@@ -14,12 +14,25 @@ allocator: std.mem.Allocator,
 
 /// Initializes a new canvas (pixels are undefined)
 pub fn init(allocator: std.mem.Allocator, width: usize, height: usize) !Canvas {
-    return Canvas{
+    const ret = Canvas{
         .width = width,
         .height = height,
         .data = try allocator.alloc(Color, width * height),
         .allocator = allocator,
     };
+
+    // Set pixels to magenta to simplify detecting unset pixels
+    if (std.debug.runtime_safety) {
+        for (ret.data) |*px| {
+            px.* = .{
+                .a = 1.0,
+                .r = 1.0,
+                .g = 0.0,
+                .b = 1.0,
+            };
+        }
+    }
+    return ret;
 }
 
 /// Deinits the canvas
@@ -28,6 +41,7 @@ pub fn deinit(self: Canvas) void {
 }
 
 /// Makes sure all the colors fit within [0,1]
+/// TODO: That is not ok!! alpha value broke this
 pub fn adjustColors(self: *Canvas) void {
     var floats: []f32 = undefined;
     floats.ptr = @ptrCast(&self.data[0]);

@@ -17,6 +17,8 @@ pub const DebugMode = enum {
     reflection,
     /// The number of steps is used to color
     rayinfo,
+    /// How close the ray was to the surface when it hit
+    hit_distance,
 };
 
 /// Version of the program
@@ -27,7 +29,7 @@ pub var benchmark_it: usize = 5;
 /// Slows down everything!!! only for analysis
 pub const report_rayload_composition: bool = false;
 /// Changes what the output image will represent (see DebugMode)
-pub const debug_mode: DebugMode = .none;
+pub const debug_mode: DebugMode = .hit_distance;
 /// How much of the min distance we actually advance
 pub const progress_factor = 0.999;
 /// How many progress steps we do until we check hits
