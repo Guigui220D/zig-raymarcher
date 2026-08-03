@@ -36,27 +36,33 @@ pub fn distance(self: Transform, pos: zlm.Vec3) Ft {
 
 /// Calculates the distance from this object (vectorized)
 pub fn vDistance(self: Transform, x: VFt, y: VFt, z: VFt) VFt {
+    const rx, const ry, const rz = vTransform(x, y, z, self.transform);
+    return self.o.vDistance(rx, ry, rz);
+}
+
+/// Just like zlm's transform but vectorized (and doesn't take a w value)
+pub inline fn vTransform(x: VFt, y: VFt, z: VFt, transform: zlm.Mat4) struct { VFt, VFt, VFt } {
     var rx: VFt = @splat(0);
     var ry: VFt = @splat(0);
     var rz: VFt = @splat(0);
 
-    rx += x * @as(VFt, @splat(self.transform.fields[0][0]));
-    ry += x * @as(VFt, @splat(self.transform.fields[0][1]));
-    rz += x * @as(VFt, @splat(self.transform.fields[0][2]));
+    rx += x * @as(VFt, @splat(transform.fields[0][0]));
+    ry += x * @as(VFt, @splat(transform.fields[0][1]));
+    rz += x * @as(VFt, @splat(transform.fields[0][2]));
 
-    rx += y * @as(VFt, @splat(self.transform.fields[1][0]));
-    ry += y * @as(VFt, @splat(self.transform.fields[1][1]));
-    rz += y * @as(VFt, @splat(self.transform.fields[1][2]));
+    rx += y * @as(VFt, @splat(transform.fields[1][0]));
+    ry += y * @as(VFt, @splat(transform.fields[1][1]));
+    rz += y * @as(VFt, @splat(transform.fields[1][2]));
 
-    rx += z * @as(VFt, @splat(self.transform.fields[2][0]));
-    ry += z * @as(VFt, @splat(self.transform.fields[2][1]));
-    rz += z * @as(VFt, @splat(self.transform.fields[2][2]));
+    rx += z * @as(VFt, @splat(transform.fields[2][0]));
+    ry += z * @as(VFt, @splat(transform.fields[2][1]));
+    rz += z * @as(VFt, @splat(transform.fields[2][2]));
 
-    rx += @as(VFt, @splat(self.transform.fields[3][0]));
-    ry += @as(VFt, @splat(self.transform.fields[3][1]));
-    rz += @as(VFt, @splat(self.transform.fields[3][2]));
+    rx += @as(VFt, @splat(transform.fields[3][0]));
+    ry += @as(VFt, @splat(transform.fields[3][1]));
+    rz += @as(VFt, @splat(transform.fields[3][2]));
 
-    return self.o.vDistance(rx, ry, rz);
+    return .{ rx, ry, rz };
 }
 
 // Copyright Guillaume Derex 2020-2026 (GPL-3.0)

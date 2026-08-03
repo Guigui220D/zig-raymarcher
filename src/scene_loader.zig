@@ -226,6 +226,9 @@ fn readObject(alloc: std.mem.Allocator, value: *const std.json.Value) !Object {
     if (std.mem.eql(u8, "negate", type_name.string))
         ret = try readNegateObject(alloc, obj_def);
 
+    if (std.mem.eql(u8, "jit_test", type_name.string))
+        ret = Object{ .scene_test = .{} };
+
     return ret orelse error.BadObjectJson;
 }
 

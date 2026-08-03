@@ -36,50 +36,50 @@ fn init(distanceFn: RegularPrimitiveFn, vDistanceFn: VectorizedPrimitiveFn) Prim
 
 // DISTANCE FUNCTIONS
 
-fn sphere(pos: zlm.Vec3) Ft {
+pub fn sphere(pos: zlm.Vec3) Ft {
     return pos.length() - 1;
 }
 
-fn vSphere(x: VFt, y: VFt, z: VFt) VFt {
+pub fn vSphere(x: VFt, y: VFt, z: VFt) VFt {
     return @sqrt(x * x + y * y + z * z) - @as(VFt, @splat(1));
 }
 
-fn cube(pos: zlm.Vec3) Ft {
+pub fn cube(pos: zlm.Vec3) Ft {
     return @max(@max(@abs(pos.x) - 1, @abs(pos.y) - 1), @abs(pos.z) - 1);
 }
 
-fn vCube(x: VFt, y: VFt, z: VFt) VFt {
+pub fn vCube(x: VFt, y: VFt, z: VFt) VFt {
     return @max(@max(
         @abs(x) - @as(VFt, @splat(1)),
         @abs(y) - @as(VFt, @splat(1)),
     ), @abs(z) - @as(VFt, @splat(1)));
 }
 
-fn plane(pos: zlm.Vec3) Ft {
+pub fn plane(pos: zlm.Vec3) Ft {
     return @abs(pos.y);
 }
 
-fn vPlane(x: VFt, y: VFt, z: VFt) VFt {
+pub fn vPlane(x: VFt, y: VFt, z: VFt) VFt {
     _ = x;
     _ = z;
     return @abs(y);
 }
 
-fn half(pos: zlm.Vec3) Ft {
+pub fn half(pos: zlm.Vec3) Ft {
     return pos.y;
 }
 
-fn vHalf(x: VFt, y: VFt, z: VFt) VFt {
+pub fn vHalf(x: VFt, y: VFt, z: VFt) VFt {
     _ = x;
     _ = z;
     return y;
 }
 
-fn cylinder(pos: zlm.Vec3) Ft {
+pub fn cylinder(pos: zlm.Vec3) Ft {
     return pos.sub(zlm.vec3(0, pos.y, 0)).length() - 1;
 }
 
-fn vCylinder(x: VFt, y: VFt, z: VFt) VFt {
+pub fn vCylinder(x: VFt, y: VFt, z: VFt) VFt {
     _ = y;
     return @sqrt(x * x + z * z) - @as(VFt, @splat(1));
 }

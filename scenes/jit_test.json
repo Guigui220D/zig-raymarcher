@@ -1,0 +1,18 @@
+{
+    "camera": {},
+    "materials": {
+        "metal": {
+            "diffuse": "darkgray",
+            "reflectivity": 0.1
+        }
+    },
+    "contents": [
+        {
+            "material": "metal",
+            "object": {
+                "type": "jit_test"
+            }
+        }
+    ]
+}
+

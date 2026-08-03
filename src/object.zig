@@ -7,6 +7,7 @@ const Csg = @import("object/Csg.zig");
 const Repeat = @import("object/Repeat.zig");
 const Meld = @import("object/Meld.zig");
 const Negate = @import("object/Negate.zig");
+const CompiledScene = @import("object/CompiledScene.zig");
 const types = @import("types.zig");
 const VFt = types.VFt;
 const Ft = types.Ft;
@@ -55,6 +56,8 @@ pub const Object = union(enum) {
     meld: Meld,
     /// Inside out object
     negate: Negate,
+    /// Scene function test: one function to rule them all
+    scene_test: CompiledScene,
 };
 
 // Copyright Guillaume Derex 2020-2026 (GPL-3.0)
