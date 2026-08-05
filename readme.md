@@ -1,4 +1,4 @@
-# Zig Raymarcher
+# Randonnée
 
 A raymarcher I'm writing in Zig, that runs on the CPU and renders scenes described in Json.
 

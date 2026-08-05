@@ -18,6 +18,11 @@ axis: packed struct {
 },
 /// Period of the repetition
 modulo: Ft,
+/// Reciprocical of the modulo
+modulo_r: Ft,
+/// Half of the modulo
+modulo_h: Ft,
+// TODO: in some cases the modulo is trivial
 
 /// Inits a repeat object
 pub fn init(object: *Object, repeat_x: bool, repeat_y: bool, repeat_z: bool, modulo: Ft) Repeat {
@@ -29,6 +34,8 @@ pub fn init(object: *Object, repeat_x: bool, repeat_y: bool, repeat_z: bool, mod
             .z = repeat_z,
         },
         .modulo = modulo,
+        .modulo_r = 1.0 / modulo,
+        .modulo_h = modulo / 2.0, // Is it worth storing at all
     };
 }
 
@@ -37,11 +44,11 @@ pub fn distance(self: Repeat, pos: zlm.Vec3) Ft {
     var temp = pos;
 
     if (self.axis.x)
-        temp.x = repeatFunction(temp.x, self.modulo);
+        temp.x = fastMod(temp.x + self.modulo_h, self.modulo, self.modulo_r) - self.modulo_h;
     if (self.axis.y)
-        temp.y = repeatFunction(temp.y, self.modulo);
+        temp.y = fastMod(temp.y + self.modulo_h, self.modulo, self.modulo_r) - self.modulo_h;
     if (self.axis.z)
-        temp.z = repeatFunction(temp.z, self.modulo);
+        temp.z = fastMod(temp.z + self.modulo_h, self.modulo, self.modulo_r) - self.modulo_h;
 
     return self.o.distance(temp);
 }
@@ -52,24 +59,26 @@ pub fn vDistance(self: Repeat, x: VFt, y: VFt, z: VFt) VFt {
     var ty = y;
     var tz = z;
 
+    const mod_h = @as(VFt, @splat(self.modulo_h));
+
     if (self.axis.x)
-        tx = vRepeatFunction(tx, self.modulo);
+        tx = vFastMod(tx + mod_h, self.modulo, self.modulo_r) - mod_h;
     if (self.axis.y)
-        ty = vRepeatFunction(ty, self.modulo);
+        ty = vFastMod(ty + mod_h, self.modulo, self.modulo_r) - mod_h;
     if (self.axis.z)
-        tz = vRepeatFunction(tz, self.modulo);
+        tz = vFastMod(tz + mod_h, self.modulo, self.modulo_r) - mod_h;
 
     return self.o.vDistance(tx, ty, tz);
 }
 
-/// Function that acts like modulo but centered
-inline fn repeatFunction(val: Ft, mod: Ft) Ft {
-    return @mod(val + mod / 2, mod) - mod / 2;
+/// Function that acts like modulo
+inline fn fastMod(val: Ft, mod: Ft, mod_r: Ft) Ft {
+    return val - @floor(val * mod_r) * mod;
 }
 
-/// Function that acts like modulo but centered (vectorized)
-inline fn vRepeatFunction(val: VFt, mod: Ft) VFt {
-    return @mod(val + @as(VFt, @splat(mod / 2)), @as(VFt, @splat(mod))) - @as(VFt, @splat(mod / 2));
+/// Function that acts like modulo (vectorized)
+inline fn vFastMod(val: VFt, mod: Ft, mod_r: Ft) VFt {
+    return val - @floor(val * @as(VFt, @splat(mod_r))) * @as(VFt, @splat(mod));
 }
 
 // Copyright Guillaume Derex 2020-2026 (GPL-3.0)

@@ -29,7 +29,7 @@ pub var benchmark_it: usize = 5;
 /// Slows down everything!!! only for analysis
 pub const report_rayload_composition: bool = false;
 /// Changes what the output image will represent (see DebugMode)
-pub const debug_mode: DebugMode = .hit_distance;
+pub const debug_mode: DebugMode = .none;
 /// How much of the min distance we actually advance
 pub const progress_factor = 0.999;
 /// How many progress steps we do until we check hits
