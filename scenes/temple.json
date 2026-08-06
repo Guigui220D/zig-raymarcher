@@ -1,0 +1,92 @@
+{
+    "camera": {},
+    "materials": {
+        "rock1": {
+            "diffuse": "gray",
+            "reflectivity": 0.3
+        },
+        "rock2": {
+            "diffuse": "white",
+            "reflectivity": 0.3
+        },
+        "wood": {
+            "diffuse": "brown"
+        },
+        "gold": {
+            "diffuse": "yellow",
+            "reflectivity": 0.7
+        }
+    },
+    "contents": [
+        {
+            "material": "rock1",
+            "object": {
+                "type": "transform",
+                "x": -4,
+                "object": {
+                    "type": "repeat",
+                    "axis": "z",
+                    "period": 4,
+                    "object": {
+                        "type": "primitive",
+                        "primitive": "cylinder"
+                    }
+                }
+            }
+        },
+        {
+            "material": "rock1",
+            "object": {
+                "type": "transform",
+                "x": 4,
+                "object": {
+                    "type": "repeat",
+                    "axis": "z",
+                    "period": 4,
+                    "object": {
+                        "type": "primitive",
+                        "primitive": "cylinder"
+                    }
+                }
+            }
+        },
+        {
+            "material": "rock2",
+            "object": {
+                "type": "transform",
+                "y": -2,
+                "object": {
+                    "type": "primitive",
+                    "primitive": "half"
+                }
+            }
+        },
+        {
+            "material": "wood",
+            "object": {
+                "type": "transform",
+                "yaw": 30,
+                "z": 10,
+                "y": -2,
+                "object": {
+                    "type": "primitive",
+                    "primitive": "cube"
+                }
+            }
+        },
+        {
+            "material": "gold",
+            "object": {
+                "type": "transform",
+                "z": 20,
+                "sy": 3,
+                "sx": 2,
+                "y": 2, 
+                "object": {
+                    "type": "primitive",
+                    "primitive": "cube"
+                }
+            }
+        }
+    ]
+}

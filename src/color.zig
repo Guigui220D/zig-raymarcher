@@ -47,4 +47,4 @@ pub const Color = struct {
 
 pub const Color32 = packed struct { b: u8, g: u8, r: u8, a: u8 };
 
-//Guillaume Derex 2020-2026
+// Copyright Guillaume Derex 2020-2026 (GPL-3.0)

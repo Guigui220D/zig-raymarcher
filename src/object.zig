@@ -1,109 +1,60 @@
-const zlm = @import("zlm").as(f64);
+//! Object union for the scene tree. See object/ folder for object types
+const zlm = @import("zlm").as(Ft);
 const std = @import("std");
-const PrimitiveFn = @import("primitives.zig").PrimitiveFn;
-const Material = @import("Material.zig");
+const Primitive = @import("object/Primitive.zig");
+const Transform = @import("object/Transform.zig");
+const Csg = @import("object/Csg.zig");
+const Repeat = @import("object/Repeat.zig");
+const Meld = @import("object/Meld.zig");
+const Negate = @import("object/Negate.zig");
+const types = @import("types.zig");
+const VFt = types.VFt;
+const Ft = types.Ft;
 
-const ObjectTypes = enum { primitive, transform, csg, repeat };
-
-pub const Object = union(ObjectTypes) {
-    pub fn distance(self: Object, pos: zlm.Vec3) f64 {
-        switch (self) {
-            .primitive => return self.primitive(pos),
-            .transform => |transform| {
-                var transformed = pos;
-                //rotate
-                if (!transform.rotate.eql(zlm.Vec3.zero)) {
-                    { //x
-                        const sc = transform._xsincos;
-                        const new_y = sc.y * transformed.y - sc.x * transformed.z;
-                        const new_z = sc.x * transformed.y + sc.y * transformed.z;
-                        transformed.y = new_y;
-                        transformed.z = new_z;
-                    }
-                    { //y
-                        const sc = transform._ysincos;
-                        const new_x = sc.y * transformed.x + sc.x * transformed.z;
-                        const new_z = sc.y * transformed.z - sc.x * transformed.x;
-                        transformed.x = new_x;
-                        transformed.z = new_z;
-                    }
-                    { //z
-                        const sc = transform._zsincos;
-                        const new_x = sc.y * transformed.x - sc.x * transformed.y;
-                        const new_y = sc.x * transformed.x + sc.y * transformed.y;
-                        transformed.x = new_x;
-                        transformed.y = new_y;
-                    }
-                }
-                //scale
-                if (!transform.scale.eql(zlm.Vec3.one))
-                    transformed = transformed.div(transform.scale);
-                //translate
-                transformed = transformed.sub(transform.translate);
-                return transform.o.distance(transformed);
-            },
-            .csg => |csg| {
-                const a = csg.a.distance(pos);
-                const b = csg.b.distance(pos);
-
-                return switch (csg.mode) {
-                    .intersectionSDF => @max(a, b),
-                    .unionSDF => @min(a, b),
-                    .differenceSDF => @max(a, -b),
-                };
-            },
-            .repeat => |repeat| {
-                var transformed = pos;
-
-                if (repeat.axis & 0b100 != 0) //x
-                    transformed.x = mmodulo(transformed.x, repeat.modulo);
-                if (repeat.axis & 0b010 != 0) //y
-                    transformed.y = mmodulo(transformed.y, repeat.modulo);
-                if (repeat.axis & 0b001 != 0) //z
-                    transformed.z = mmodulo(transformed.z, repeat.modulo);
-
-                return self.repeat.o.distance(transformed);
-            },
-        }
-    }
-
-    pub fn bakeTransform(object: *Object, rotate: zlm.Vec3, scale: zlm.Vec3, translate: zlm.Vec3) Object {
-        return .{
-            .transform = .{
-                .o = object,
-                .rotate = rotate,
-                .scale = scale,
-                .translate = translate,
-                ._xsincos = .{ .x = @sin(rotate.x), .y = @cos(rotate.x) },
-                ._ysincos = .{ .x = @sin(rotate.y), .y = @cos(rotate.y) },
-                ._zsincos = .{ .x = @sin(rotate.z), .y = @cos(rotate.z) },
-            },
+/// Object union for the scene tree
+pub const Object = union(enum) {
+    // TODO: does the switch have an impact when called repeatedly?
+    /// Obtain distance to object
+    /// Non-vectorized version which is only used for some specific, rarer operations
+    pub fn distance(self: Object, pos: zlm.Vec3) Ft {
+        return switch (self) {
+            .primitive => |pri| pri.distanceFn(pos),
+            inline else => |obj| obj.distance(pos),
         };
     }
 
-    // TODO: find ways to reduce tree depth: always transform primitives, add parameters to primitives
-    primitive: PrimitiveFn,
-    transform: struct {
-        o: *Object,
-        rotate: zlm.Vec3,
-        scale: zlm.Vec3,
-        translate: zlm.Vec3,
-        _xsincos: zlm.Vec2,
-        _ysincos: zlm.Vec2,
-        _zsincos: zlm.Vec2,
-    },
-    csg: struct { a: *Object, b: *Object, mode: CSGType },
-    repeat: struct {
-        o: *Object,
-        axis: u3, //flags for each axis
-        modulo: f64,
-    },
+    /// Obtain distance to object (vectorized)
+    pub fn vDistance(self: Object, xs: VFt, ys: VFt, zs: VFt) VFt {
+        return switch (self) {
+            .primitive => |pri| pri.vDistanceFn(xs, ys, zs),
+            inline else => |obj| obj.vDistance(xs, ys, zs),
+        };
+    }
+
+    /// Calculates the normal of that object from a point that is (near) the surface
+    pub fn normal(self: Object, pos: zlm.Vec3) zlm.Vec3 {
+        const dist = self.distance(pos);
+
+        return zlm.Vec3.normalize(zlm.vec3(
+            self.distance(pos.add(zlm.vec3(0.01, 0, 0))) - dist,
+            self.distance(pos.add(zlm.vec3(0, 0.01, 0))) - dist,
+            self.distance(pos.add(zlm.vec3(0, 0, 0.01))) - dist,
+        ));
+    }
+
+    // TODO: find ways to reduce tree depth: always transform primitives, add parameters to primitives (would this actually help?)
+    /// Primitive object
+    primitive: Primitive,
+    /// Transform of an other object in 3D space
+    transform: Transform,
+    /// Constructive geometry between two objects
+    csg: Csg,
+    /// Repetition of an object along select axes
+    repeat: Repeat,
+    /// Gooey meld between two objects
+    meld: Meld,
+    /// Inside out object
+    negate: Negate,
 };
 
-pub const CSGType = enum(u2) { intersectionSDF, unionSDF, differenceSDF };
-
-fn mmodulo(f: f64, m: f64) f64 {
-    return @mod(f + m / 2, m) - m / 2;
-}
-
-//Guillaume Derex 2020-2026
+// Copyright Guillaume Derex 2020-2026 (GPL-3.0)

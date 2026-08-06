@@ -1,0 +1,21 @@
+{
+    "camera": {},
+    "materials": {
+        "mirror": {
+            "diffuse": "white",
+            "reflectivity": 0.7
+        }
+    },
+    "contents": [
+        {
+            "material": "mirror",
+            "object": {
+                "type": "negate",
+                "object": {
+                    "type": "primitive",
+                    "primitive": "cube"
+                }
+            }
+        }
+    ]
+}

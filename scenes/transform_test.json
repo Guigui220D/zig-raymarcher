@@ -1,0 +1,63 @@
+{
+    "camera": {},
+    "materials": {
+        "red": {
+            "diffuse": "red",
+            "diffuse2": "darkred",
+            "reflectivity": 0.5
+        },
+        "green": {
+            "diffuse": "green"
+        },
+        "blue": {
+            "diffuse": "blue",
+            "reflectivity": 0.5
+        },
+        "mirror": {
+            "diffuse": "white",
+            "reflectivity": 0.8
+        }
+    },
+    "contents": [
+        {
+            "material": "red",
+            "object": {
+                "type": "transform",
+                "pitch": 45,
+                "z": 4,
+                "x": 1,
+                "object": {
+                    "type": "csg",
+                    "csg": "union",
+                    "object1": {
+                        "type": "primitive",
+                        "primitive": "cube"
+                    },
+                    "object2": {
+                        "type": "transform",
+                        "scale": 0.6,
+                        "object": {
+                            "type": "primitive",
+                            "primitive": "cylinder"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "material": "blue",
+            "object": {
+                "type": "transform",
+                "x": 1,
+                "z": 10,
+                "sx": 100,
+                "sy": 100,
+                "object": {
+                    "type": "primitive",
+                    "primitive": "cube"
+                    
+                }
+            }
+        }   
+    ]
+}

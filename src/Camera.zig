@@ -1,8 +1,9 @@
-const zlm = @import("zlm").as(f64);
+const Ft = @import("types.zig").Ft;
+const zlm = @import("zlm").as(Ft);
 
 origin: zlm.Vec3 = zlm.Vec3.zero,
 direction: zlm.Vec3 = zlm.vec3(0, 0, 1),
-fov_modifier: f64 = 1,
+fov_modifier: Ft = 1,
 
 // TODO: fix those for z = 0
 // Those are here to create a vector base for the camera POV
@@ -26,4 +27,4 @@ pub fn getX(self: @This()) zlm.Vec3 {
     return dir;
 }
 
-//Guillaume Derex 2026
+// Copyright Guillaume Derex 2020-2026 (GPL-3.0)

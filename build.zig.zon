@@ -44,6 +44,10 @@
             .url = "git+https://github.com/sorairolake/csscolorparser-zig.git#193c02d631a86cd9a1138111dc923080ede4693d",
             .hash = "csscolorparser-0.2.0-RNqxK_M2AQCc7rYPftn30U2EgV3q5wsnsj1Y5FdRa4WZ",
         },
+        .clap = .{
+            .url = "git+https://github.com/Hejsil/zig-clap.git#8d97efa1ee1e575443c7888d5c38e1c3fc145cf5",
+            .hash = "clap-0.12.0-oBajB7foAQDqlSwaSG5g0yq7xGbQARUsBk5T64gAOqP5",
+        },
     },
     .paths = .{
         "build.zig",

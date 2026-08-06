@@ -1,7 +1,9 @@
-const zlm = @import("zlm").as(f64);
+//! Struct representing a point light source
+const zlm = @import("zlm").as(Ft);
+const Ft = @import("types.zig").Ft;
 const Color = @import("color.zig").Color;
 
 color: Color = .{ .r = 1, .g = 1, .b = 1 },
-position: zlm.Vec3 = zlm.Vec3.zero,
+pos: zlm.Vec3 = zlm.Vec3.zero,
 
-//Guillaume Derex 2026
+// Copyright Guillaume Derex 2020-2026 (GPL-3.0)

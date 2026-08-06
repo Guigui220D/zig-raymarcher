@@ -1,10 +1,8 @@
-# Zig Raymarcher
+# Randonnée
 
-A raymarcher I'm writing in zig, no libraries used (except std).
+A raymarcher I'm writing in Zig, that runs on the CPU and renders scenes described in Json.
 
-My goal is to be able to have scene files with different materials and geometries described with json, and to be able to render them.
-
-Images are saved as TGA files.
+This project is licensed under the GNU General Public License v3.0 (GPL-3.0-or-later). See the LICENSE file for details.
 
 ### Todo
 
@@ -14,10 +12,11 @@ Images are saved as TGA files.
 - [x] reflections
 - [ ] refractions
 - [ ] better shaders
-- [ ] loading scenes from json
+- [x] loading scenes from json
 - [x] multithreading
-- [ ] make things less awfully slow
-- [ ] skybox
+- [x] vectorization
+- [x] make things less awfully slow
+- [x] skybox
 - [ ] animations
 
 ### Screenshots

@@ -1,252 +1,94 @@
-const zlm = @import("zlm").as(f64);
+//! Raymarcher file, the root of functions to raymarch
 const std = @import("std");
 const math = std.math;
 
-const Scene = @import("Scene.zig");
-const Renderable = @import("Renderable.zig");
-const Color = @import("color.zig").Color;
-const Canvas = @import("Canvas.zig");
-const Camera = @import("Camera.zig");
 const csscolorparser = @import("csscolorparser");
+
+const Camera = @import("Camera.zig");
+const Canvas = @import("Canvas.zig");
+const Color = @import("color.zig").Color;
+const Ray = @import("Ray.zig");
+const RayLoad = @import("RayLoad.zig");
+const Renderable = @import("Renderable.zig");
+const Scene = @import("Scene.zig");
 const Skybox = @import("Skybox.zig");
-
-pub const DebugMode = enum {
-    none,
-    material_ids,
-    refl_factor,
-    dot,
-};
-
-// TODO: make this an object and add current_settings and default_settings
-pub const settings = struct {
-    pub var hit_distance: f64 = 0.02;
-    pub var max_steps: usize = 128;
-    pub var max_steps_getting_closer: usize = 2048;
-    pub var max_reflections: usize = 6;
-    pub var preview: bool = false;
-    pub var debug_mode: DebugMode = .none;
-};
+const Settings = @import("Settings.zig");
 
 var current_scene: Scene = undefined;
 var current_canvas: Canvas = undefined;
 var current_camera: Camera = .{};
 var current_skybox: *const Skybox = undefined;
-var fwidth: f64 = undefined;
-var fheight: f64 = undefined;
-var next_slice: usize = 0;
 
-fn distanceToScene(scene: []const Renderable, pos: zlm.Vec3) f64 {
-    var distance: f64 = math.floatMax(f64);
-
-    for (scene) |renderable| {
-        const dist = renderable.object.distance(pos);
-        distance = @min(distance, dist);
-    }
-
-    return distance;
-}
-
-fn closestObject(scene: []const Renderable, pos: zlm.Vec3) ?*const Renderable {
-    var distance: f64 = math.floatMax(f64);
-    var obj: ?*const Renderable = null;
-
-    for (scene) |*renderable| {
-        const dist = renderable.object.distance(pos);
-
-        if (dist < distance) {
-            distance = dist;
-            obj = renderable;
-        }
-    }
-
-    return obj;
-}
-
-fn normal(rend: Renderable, pos: zlm.Vec3) zlm.Vec3 {
-    const dist = rend.object.distance(pos);
-
-    return zlm.Vec3.normalize(zlm.vec3(
-        rend.object.distance(pos.add(zlm.vec3(settings.hit_distance / 2, 0, 0))) - dist,
-        rend.object.distance(pos.add(zlm.vec3(0, settings.hit_distance / 2, 0))) - dist,
-        rend.object.distance(pos.add(zlm.vec3(0, 0, settings.hit_distance / 2))) - dist,
-    ));
-}
-
-fn reflect(incident: zlm.Vec3, normale: zlm.Vec3) zlm.Vec3 {
-    return incident.sub(normale.scale(incident.dot(normale) * 2.0));
-}
-
-fn march(position: *zlm.Vec3, direction: zlm.Vec3, distance: f64) void {
-    position.* = position.add(direction.scale(distance));
-}
-
-// TODO: return info about how occluded is the path to the point instead of just bool
-// TODO: consider reflections? (that may be rly hard)
-fn raymarchToPoint(scene: []const Renderable, goal: zlm.Vec3, start: zlm.Vec3) bool {
-    const dir = goal.sub(start).normalize();
-    var ray = start;
-    march(&ray, dir, settings.hit_distance * 1.1);
-
-    while (true) {
-        if (goal.sub(ray).dot(dir) <= 0)
-            return true; // We got past the light
-        const distance = distanceToScene(scene, ray);
-        if (distance <= settings.hit_distance)
-            return false; // We hit an object
-
-        march(&ray, dir, distance - (settings.hit_distance * 0.9));
-    }
-}
-
-fn raymarch(scene: Scene, start: zlm.Vec3, direction: zlm.Vec3, recursion: usize, skybox: *const Skybox) Color {
-    var i: usize = 0;
-
-    var ray = start;
-
-    var last_dist: f64 = 0.0;
-    return while (true) : (i += 1) {
-        const distance = distanceToScene(scene.objects, ray);
-
-        if (i >= settings.max_steps) {
-            if (distance >= last_dist or i > settings.max_steps_getting_closer) {
-                break skybox.fetchColor(direction);
-            }
-        }
-
-        last_dist = distance;
-
-        if (distance <= 3 * settings.hit_distance)
-            i = 0;
-
-        if (distance <= settings.hit_distance) {
-            const obj = closestObject(scene.objects, ray).?;
-
-            if (settings.debug_mode == .material_ids) {
-                const hue = @as(f32, @floatFromInt(obj.material_id)) / @as(f32, @floatFromInt(scene.materials.len));
-                const col = csscolorparser.Color(f32).fromHsl(hue * 360, 1.0, 0.5, 1.0);
-                break Color{
-                    .a = col.alpha,
-                    .r = col.red,
-                    .g = col.green,
-                    .b = col.blue,
-                };
-            }
-
-            const mat = scene.materials[obj.material_id];
-
-            const norm_vec = normal(obj.*, ray);
-
-            var diffuse = if (mat.diffuse2) |pattern| blk: {
-                const sum = math.floor(ray.x * 2) + math.floor(ray.y * 2) + math.floor(ray.z * 2);
-                if (@mod(sum, 2) < 0.1) {
-                    break :blk mat.diffuse;
-                }
-                break :blk pattern;
-            } else mat.diffuse;
-
-            var light_sum: Color = scene.global_light.color;
-            for (scene.lights) |light| {
-                const dir = light.position.sub(ray).normalize();
-                const dot: f32 = @floatCast(norm_vec.dot(dir));
-                if (dot < 0)
-                    continue;
-                if (raymarchToPoint(scene.objects, light.position, ray)) {
-                    light_sum = light_sum.add(light.color.scale(dot));
-                }
-            }
-
-            diffuse = diffuse.mul(light_sum);
-
-            if (recursion == 0 or (mat.smoothness == 0 and mat.reflectivity == 0 and settings.debug_mode == .none))
-                break diffuse;
-
-            const reflection = reflect(direction.normalize(), norm_vec);
-            march(&ray, reflection, settings.hit_distance * 1.1);
-            const refl_color = raymarch(scene, ray, reflection, recursion - 1, skybox);
-
-            const dot: f32 = @floatCast(@abs(norm_vec.normalize().dot(reflection)));
-            const refl = mat.smoothness + (mat.reflectivity - mat.smoothness) * dot;
-
-            if (settings.debug_mode == .refl_factor)
-                break Color{ .r = refl, .g = refl, .b = refl };
-
-            if (settings.debug_mode == .dot)
-                break Color{ .r = dot, .g = dot, .b = dot };
-
-            break Color.mix(refl_color, diffuse, refl);
-        }
-        march(&ray, direction, distance - (settings.hit_distance * 0.9));
-    };
-}
-
-pub fn render(_: std.mem.Allocator, io: std.Io, scene: Scene, canvas: Canvas, camera: Camera, skybox: *const Skybox) !void {
+/// Renders a scene to a canvas
+pub fn render(alloc: std.mem.Allocator, io: std.Io, scene: Scene, canvas: Canvas, camera: Camera, skybox: *const Skybox, parent_node: std.Progress.Node) !i64 {
     if (canvas.width == 0 or canvas.height == 0)
         return error.canvasWrongFormat;
-
-    if (settings.preview) {
-        std.debug.print("/!\\ Running in preview mode!\n", .{});
-        settings.max_steps /= 2;
-        settings.max_reflections = 1;
-        settings.max_steps_getting_closer = settings.max_steps * 2;
-        settings.hit_distance *= 2;
-    }
 
     current_scene = scene;
     current_canvas = canvas;
     current_camera = camera;
     current_skybox = skybox;
 
-    fwidth = @floatFromInt(canvas.width);
-    fheight = @floatFromInt(canvas.height);
+    const cwd = std.Io.Dir.cwd();
+    var file = try cwd.createFile(io, "report.csv", .{});
+    defer file.close(io);
+    var buf: [512]u8 = undefined;
 
-    next_slice = 0;
+    var fwriter = file.writer(io, &buf);
+    const writer = &fwriter.interface;
 
-    var group: std.Io.Group = .init;
-    defer group.cancel(io);
+    // Init one ray per pixel
+    var rayload: RayLoad = try .init(
+        alloc,
+        &canvas,
+        &camera,
+        &scene,
+        if (Settings.report_rayload_composition) writer else null,
+    );
+    defer rayload.deinit();
 
-    for (0..current_canvas.height) |slice_y| {
-        group.async(io, renderSlice, .{slice_y});
-    }
+    var total_rays = rayload.rays.len;
+    var progress_node = parent_node.start("Render frame", total_rays);
 
-    try group.await(io);
-}
+    var i: usize = 0;
 
-fn renderSlice(my_slice: usize) !void {
-    const width = current_canvas.width;
-    const begin = width * my_slice;
+    const clock: std.Io.Clock = .real;
+    const start = std.Io.Timestamp.now(io, clock);
 
-    const slice_f: f64 = @floatFromInt(my_slice);
-    const ry: f64 = (slice_f - fheight / 2.0) / fwidth;
+    while (try rayload.refillFromCanvas()) {
+        // Progress each ray that exists once
+        while (rayload.hasWork()) {
+            // Do several steps before checking to save some ressources
+            for (0..Settings.steps_per_check) |_| {
+                // For each object, update the rays distance
+                rayload.computeDistances();
 
-    var last_col: Color = undefined;
+                // Then advance them
+                rayload.advance();
+            }
 
-    var x: usize = 0;
-    while (x < width) : (x += 1) {
-        if (settings.preview and x % 2 == 1) {
-            current_canvas.data[begin + x] = last_col;
-            continue;
+            // Progress each ray based on the distances we found (or collapse results)
+            try rayload.update(io, clock);
+
+            // Update progress bar
+            {
+                const current_ray_count = rayload.rays.len;
+                if (current_ray_count > total_rays) {
+                    total_rays = current_ray_count;
+                    progress_node.increaseEstimatedTotalItems(total_rays);
+                }
+                progress_node.setCompletedItems(total_rays - current_ray_count);
+            }
+
+            i += 1;
         }
-
-        const x_f: f64 = @floatFromInt(x);
-        const rx: f64 = (x_f - fwidth / 2.0) / fwidth;
-
-        const direction = zlm.vec3(rx, ry, 1 / current_camera.fov_modifier);
-        var actual_dir = zlm.Vec3.zero;
-        actual_dir = actual_dir.add(current_camera.getX().scale(direction.x));
-        actual_dir = actual_dir.add(current_camera.getY().scale(-direction.y));
-        actual_dir = actual_dir.add(current_camera.getZ().scale(direction.z));
-
-        // TODO: the first distance from the camera is the same for every ray: optimize away the first closest search
-        const col = raymarch(
-            current_scene,
-            current_camera.origin,
-            actual_dir.normalize(),
-            settings.max_reflections,
-            current_skybox,
-        );
-        last_col = col;
-        current_canvas.data[begin + x] = col;
     }
+
+    progress_node.end();
+
+    const dur = std.Io.Timestamp.untilNow(start, io, clock);
+
+    return dur.toMicroseconds();
 }
 
-//Guillaume Derex 2020-2026
+// Copyright Guillaume Derex 2020-2026 (GPL-3.0)
